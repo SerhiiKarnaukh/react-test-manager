@@ -15,8 +15,8 @@ type ProvidersProps = {
 export function Providers({ children }: ProvidersProps) {
   return (
     <QueryClientProvider client={queryClient}>
-      <InitColorSchemeScript attribute="class" />
-      <ThemeProvider theme={theme} defaultMode="system">
+      <InitColorSchemeScript attribute="class" defaultMode="light" />
+      <ThemeProvider theme={theme} defaultMode="light">
         <CssBaseline />
         {children}
         <AppMessage />

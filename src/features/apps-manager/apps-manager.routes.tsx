@@ -1,16 +1,15 @@
 import type { RouteObject } from 'react-router-dom'
 import { MainAppsManagerLayout } from '@features/apps-manager/layouts/MainAppsManagerLayout'
-import { StubPage } from '@shared/ui/StubPage'
+import { HomePage } from '@features/apps-manager/pages/HomePage'
+import { NotFoundPage } from '@features/apps-manager/pages/NotFoundPage'
+import { SearchPage } from '@features/apps-manager/pages/SearchPage'
 
 export const appsManagerRoutes: RouteObject[] = [
   {
     element: <MainAppsManagerLayout />,
     children: [
-      { path: '/', element: <StubPage title="Apps Manager — Home" /> },
-      {
-        path: '/apps_manager/search',
-        element: <StubPage title="Apps Manager — Search" />,
-      },
+      { path: '/', element: <HomePage /> },
+      { path: '/apps_manager/search', element: <SearchPage /> },
     ],
   },
 ]
@@ -18,8 +17,6 @@ export const appsManagerRoutes: RouteObject[] = [
 export const appsManagerNotFoundRoute: RouteObject[] = [
   {
     element: <MainAppsManagerLayout />,
-    children: [
-      { path: '*', element: <StubPage title="Page not found" /> },
-    ],
+    children: [{ path: '*', element: <NotFoundPage /> }],
   },
 ]

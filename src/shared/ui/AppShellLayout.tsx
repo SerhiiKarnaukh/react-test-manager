@@ -28,7 +28,7 @@ export function AppShellLayout({ title, children }: AppShellLayoutProps) {
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <AppBar position="static" color="default" elevation={1}>
+      <AppBar position="static" color="primary" elevation={1}>
         <Toolbar sx={{ gap: 1 }}>
           <Typography variant="h6" component="div" sx={{ mr: 2 }}>
             {title}
