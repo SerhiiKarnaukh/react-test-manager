@@ -1,6 +1,9 @@
 import type { RouteObject } from 'react-router-dom'
 import { CartPage } from '@features/taberna/cart/pages/CartPage'
 import { MainTabernaLayout } from '@features/taberna/layouts/MainTabernaLayout'
+import { CheckoutPage } from '@features/taberna/orders/pages/CheckoutPage'
+import { FailedPage } from '@features/taberna/orders/pages/FailedPage'
+import { SuccessPage } from '@features/taberna/orders/pages/SuccessPage'
 import { CategoryDetailPage } from '@features/taberna/product/pages/CategoryDetailPage'
 import { ProductDetailPage } from '@features/taberna/product/pages/ProductDetailPage'
 import { ProductHomePage } from '@features/taberna/product/pages/ProductHomePage'
@@ -51,17 +54,17 @@ export const tabernaRoutes: RouteObject[] = [
         path: 'taberna/cart/checkout',
         element: (
           <RequireAuth app="taberna">
-            <StubPage title="Taberna — Checkout" />
+            <CheckoutPage />
           </RequireAuth>
         ),
       },
       {
         path: 'taberna/cart/success',
-        element: <StubPage title="Taberna — Order Success" />,
+        element: <SuccessPage />,
       },
       {
         path: 'taberna/cart/failed',
-        element: <StubPage title="Taberna — Order Failed" />,
+        element: <FailedPage />,
       },
     ],
   },
