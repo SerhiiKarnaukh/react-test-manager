@@ -4,8 +4,12 @@ import { FeedHomePage } from '@features/social/posts/pages/FeedHomePage'
 import { PostDetailPage } from '@features/social/posts/pages/PostDetailPage'
 import { SearchPage } from '@features/social/posts/pages/SearchPage'
 import { TrendPage } from '@features/social/posts/pages/TrendPage'
+import { EditPasswordPage } from '@features/social/profiles/pages/EditPasswordPage'
+import { EditProfilePage } from '@features/social/profiles/pages/EditProfilePage'
+import { FriendsPage } from '@features/social/profiles/pages/FriendsPage'
+import { ProfilePage } from '@features/social/profiles/pages/ProfilePage'
+import { SocialLoginPage } from '@features/social/profiles/pages/SocialLoginPage'
 import { RequireAuth } from '@router/require-auth'
-import { LoginPage } from '@shared/components/LoginPage'
 import { SignupPage } from '@shared/components/SignupPage'
 import { StubPage } from '@shared/ui/StubPage'
 
@@ -18,7 +22,7 @@ export const socialRoutes: RouteObject[] = [
         path: 'social/profile/edit',
         element: (
           <RequireAuth app="social">
-            <StubPage title="Social — Edit Profile" />
+            <EditProfilePage />
           </RequireAuth>
         ),
       },
@@ -26,13 +30,13 @@ export const socialRoutes: RouteObject[] = [
         path: 'social/profile/:slug/friends',
         element: (
           <RequireAuth app="social">
-            <StubPage title="Social — Friends" />
+            <FriendsPage />
           </RequireAuth>
         ),
       },
       {
         path: 'social/profile/:slug',
-        element: <StubPage title="Social — Profile" />,
+        element: <ProfilePage />,
       },
       { path: 'social/trends/:id', element: <TrendPage /> },
       {
@@ -56,25 +60,15 @@ export const socialRoutes: RouteObject[] = [
         path: 'social/signup',
         element: <SignupPage app="social" loginPath="/social/login" />,
       },
-      {
-        path: 'social/login',
-        element: (
-          <LoginPage
-            app="social"
-            signupPath="/social/signup"
-            defaultRedirect="/social/home"
-          />
-        ),
-      },
+      { path: 'social/login', element: <SocialLoginPage /> },
       {
         path: 'social/edit/password',
         element: (
           <RequireAuth app="social">
-            <StubPage title="Social — Edit Password" />
+            <EditPasswordPage />
           </RequireAuth>
         ),
       },
-      // Must stay last so static paths like /social/search are not captured as :id
       { path: 'social/:id', element: <PostDetailPage /> },
     ],
   },

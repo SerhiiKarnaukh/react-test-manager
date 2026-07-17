@@ -7,12 +7,10 @@ import {
   type InfiniteData,
 } from '@tanstack/react-query'
 import { useAlertStore } from '@core/alert/alert.store'
-import { useAuthStore } from '@core/auth/auth.store'
 import {
   addComment,
   createPost,
   deletePost,
-  fetchCurrentSocialUser,
   fetchFeed,
   fetchPost,
   fetchSearchPage,
@@ -30,7 +28,6 @@ import { getErrorMessage } from '@shared/utils/error'
 
 const feedKey = ['social', 'posts', 'feed'] as const
 const trendsKey = ['social', 'posts', 'trends'] as const
-const meKey = ['social', 'profiles', 'me'] as const
 
 function postDetailKey(postId: string) {
   return ['social', 'posts', 'detail', postId] as const
@@ -120,17 +117,6 @@ function filterSearchPages(
       },
     })),
   }
-}
-
-export function useCurrentSocialUser() {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated())
-
-  return useQuery({
-    queryKey: meKey,
-    queryFn: fetchCurrentSocialUser,
-    enabled: isAuthenticated,
-    staleTime: 60_000,
-  })
 }
 
 export function usePostsFeed() {

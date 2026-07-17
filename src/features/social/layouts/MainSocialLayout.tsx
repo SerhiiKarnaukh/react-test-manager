@@ -27,10 +27,9 @@ import SearchIcon from '@mui/icons-material/Search'
 import ViewModuleIcon from '@mui/icons-material/ViewModule'
 import { ThemeProvider, useColorScheme, useTheme } from '@mui/material/styles'
 import { useAuthStore } from '@core/auth/auth.store'
-import {
-  SOCIAL_DEFAULT_AVATAR,
-} from '@features/social/posts/api/posts'
-import { useCurrentSocialUser } from '@features/social/posts/hooks/usePosts'
+import { SOCIAL_DEFAULT_AVATAR } from '@features/social/profiles/api/profile.models'
+import { useCurrentSocialUser } from '@features/social/profiles/hooks/useProfile'
+import { useProfileStore } from '@features/social/profiles/store/profile.store'
 import { socialTheme } from '@features/social/social.theme'
 
 const navButtonSx = {
@@ -42,6 +41,8 @@ export function MainSocialLayout() {
   const setActiveApp = useAuthStore((s) => s.setActiveApp)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated())
   const logout = useAuthStore((s) => s.logout)
+  const initFromStorage = useProfileStore((s) => s.initFromStorage)
+  const clearUserState = useProfileStore((s) => s.clearUserState)
   const { data: currentUser } = useCurrentSocialUser()
   const { mode, setMode } = useColorScheme()
   const theme = useTheme()
@@ -54,7 +55,13 @@ export function MainSocialLayout() {
 
   useEffect(() => {
     setActiveApp('social')
-  }, [setActiveApp])
+    initFromStorage()
+  }, [setActiveApp, initFromStorage])
+
+  useEffect(() => {
+    if (isAuthenticated) return
+    clearUserState()
+  }, [isAuthenticated, clearUserState])
 
   const nextMode = mode === 'dark' ? 'light' : 'dark'
 
@@ -65,6 +72,7 @@ export function MainSocialLayout() {
 
   const handleLogout = () => {
     logout()
+    clearUserState()
     closeMenus()
     void navigate('/social/login')
   }

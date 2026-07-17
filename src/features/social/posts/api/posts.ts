@@ -61,6 +61,26 @@ export type PaginatedPostsPayload = {
   next: string | null
 }
 
+export type SocialViewedProfile = {
+  id: number
+  slug: string
+  first_name: string
+  last_name: string
+  full_name?: string
+  avatar_url: string | null
+  friends_count: number
+  posts_count: number
+}
+
+export type ProfilePostsPayload = {
+  results: {
+    posts: SocialPost[]
+    profile: SocialViewedProfile
+    can_send_friendship_request: boolean | string
+  }
+  next: string | null
+}
+
 export type SearchPostsPayload = {
   results: {
     posts: SocialPost[]
@@ -129,6 +149,18 @@ export async function fetchTrendPosts(
   return data
 }
 
+export async function fetchProfilePosts(
+  profileSlug: string,
+  pageUrl?: string | null,
+): Promise<ProfilePostsPayload> {
+  if (pageUrl) {
+    const { data } = await api.get<ProfilePostsPayload>(getPathAndSearch(pageUrl))
+    return data
+  }
+  const { data } = await api.get<ProfilePostsPayload>(`${BASE_URL}/profile/${profileSlug}/`)
+  return data
+}
+
 export async function fetchPost(postId: string): Promise<PostDetailResponse> {
   const { data } = await api.get<PostDetailResponse>(`${BASE_URL}/${postId}/`)
   return data
@@ -181,19 +213,5 @@ export async function reportPost(postId: number): Promise<unknown> {
 
 export async function deletePost(postId: number): Promise<unknown> {
   const { data } = await api.delete(`${BASE_URL}/${postId}/delete/`)
-  return data
-}
-
-/** Minimal current-user shape for ownership checks and navbar avatar (Phase 8 expands). */
-export type SocialCurrentUser = {
-  id: number
-  slug: string
-  first_name: string
-  last_name: string
-  avatar_url: string | null
-}
-
-export async function fetchCurrentSocialUser(): Promise<SocialCurrentUser> {
-  const { data } = await api.get<SocialCurrentUser>('/api/social-profiles/me/')
   return data
 }

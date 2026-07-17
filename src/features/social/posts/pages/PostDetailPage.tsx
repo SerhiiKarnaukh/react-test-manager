@@ -46,9 +46,18 @@ export function PostDetailPage() {
             <>
               <SocialPostCard post={post} />
 
-              {post.comments.map((comment) => (
-                <CommentItem key={comment.id} comment={comment} />
-              ))}
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 2,
+                  ml: { xs: 2, sm: 4 },
+                }}
+              >
+                {post.comments.map((comment) => (
+                  <CommentItem key={comment.id} comment={comment} />
+                ))}
+              </Box>
 
               {isAuthenticated ? (
                 <Card variant="outlined">

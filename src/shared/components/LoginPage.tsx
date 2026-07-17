@@ -15,9 +15,15 @@ type LoginPageProps = {
   app: Extract<AppName, 'taberna' | 'social'>
   signupPath: string
   defaultRedirect: string
+  onLoginSuccess?: () => Promise<void> | void
 }
 
-export function LoginPage({ app, signupPath, defaultRedirect }: LoginPageProps) {
+export function LoginPage({
+  app,
+  signupPath,
+  defaultRedirect,
+  onLoginSuccess,
+}: LoginPageProps) {
   const login = useAuthStore((s) => s.login)
   const enqueue = useAlertStore((s) => s.enqueue)
   const navigate = useNavigate()
@@ -28,6 +34,7 @@ export function LoginPage({ app, signupPath, defaultRedirect }: LoginPageProps) 
     setIsSubmitting(true)
     try {
       await login(app, values)
+      await onLoginSuccess?.()
       enqueue('success', 'Logged in successfully')
       const redirect = searchParams.get('redirect') || defaultRedirect
       navigate(redirect, { replace: true })

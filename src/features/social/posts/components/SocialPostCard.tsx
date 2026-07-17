@@ -21,11 +21,11 @@ import {
   type SocialPost,
 } from '@features/social/posts/api/posts'
 import {
-  useCurrentSocialUser,
   useDeletePost,
   useLikePost,
   useReportPost,
 } from '@features/social/posts/hooks/usePosts'
+import { useCurrentSocialUser } from '@features/social/profiles/hooks/useProfile'
 import { useAuthStore } from '@core/auth/auth.store'
 
 type SocialPostCardProps = {
