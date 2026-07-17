@@ -25,11 +25,15 @@ export default defineConfig({
     globals: true,
     css: true,
     coverage: {
+      provider: 'istanbul',
       include: [
+        'src/features/apps-manager/**/*.{ts,tsx}',
         'src/features/social/**/*.{ts,tsx}',
         'src/features/taberna/**/*.{ts,tsx}',
       ],
       exclude: [
+        'src/features/apps-manager/**/*.test.*',
+        'src/features/apps-manager/test/**',
         'src/features/social/**/*.test.*',
         'src/features/social/**/*.models.ts',
         'src/features/social/social.theme.ts',

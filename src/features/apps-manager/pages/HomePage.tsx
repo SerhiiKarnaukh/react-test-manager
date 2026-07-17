@@ -21,6 +21,7 @@ export function HomePage() {
 
     const updateParallax = () => {
       const hero = heroRef.current
+      /* istanbul ignore next -- defensive: ref is always attached when this runs */
       if (!hero) return
       const maxOffset = hero.offsetHeight * 0.35
       setParallaxOffset(Math.min(window.scrollY * PARALLAX_FACTOR, maxOffset))

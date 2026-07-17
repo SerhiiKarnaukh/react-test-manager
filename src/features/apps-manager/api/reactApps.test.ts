@@ -55,5 +55,6 @@ describe('reactApps api', () => {
     expect(normalizeAppsSearchResponse(sampleApps)).toEqual(sampleApps)
     expect(normalizeAppsSearchResponse({ projects: [] })).toEqual([])
     expect(normalizeAppsSearchResponse({ projects: sampleApps })).toEqual(sampleApps)
+    expect(normalizeAppsSearchResponse({} as { projects: [] })).toEqual([])
   })
 })

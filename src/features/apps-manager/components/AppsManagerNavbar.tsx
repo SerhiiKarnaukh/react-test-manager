@@ -197,9 +197,10 @@ export function AppsManagerNavbar() {
             <IconButton
               color="inherit"
               aria-label={mobileMenuAnchor ? 'Close menu' : 'Open menu'}
-              onClick={(e) =>
+              onClick={(e) => {
+                /* istanbul ignore next -- button is inert behind the modal while the menu is open */
                 setMobileMenuAnchor(mobileMenuAnchor ? null : e.currentTarget)
-              }
+              }}
             >
               {mobileMenuAnchor ? <CloseIcon /> : <MenuIcon />}
             </IconButton>
