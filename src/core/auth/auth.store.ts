@@ -11,7 +11,7 @@ type AuthState = {
   access: string | null
   refresh: string | null
   activeApp: AppName | null
-  login: (app: AppName, credentials: LoginCredentials) => Promise<void>
+  login: (app: AppName, credentials: LoginCredentials, options?: authApi.LoginOptions) => Promise<void>
   logout: () => void
   refreshTokens: () => Promise<string>
   setActiveApp: (app: AppName) => void
@@ -67,8 +67,8 @@ export const useAuthStore = create<AuthState>()(
 
       setActiveApp: (app) => set({ activeApp: app }),
 
-      login: async (app, credentials) => {
-        const tokens = await authApi.login(app, credentials)
+      login: async (app, credentials, options) => {
+        const tokens = await authApi.login(app, credentials, options)
         set({
           access: tokens.access,
           refresh: tokens.refresh,

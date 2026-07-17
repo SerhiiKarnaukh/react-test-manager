@@ -4,14 +4,14 @@ import { MainTabernaLayout } from '@features/taberna/layouts/MainTabernaLayout'
 import { CheckoutPage } from '@features/taberna/orders/pages/CheckoutPage'
 import { FailedPage } from '@features/taberna/orders/pages/FailedPage'
 import { SuccessPage } from '@features/taberna/orders/pages/SuccessPage'
+import { DashboardPage } from '@features/taberna/profiles/pages/DashboardPage'
+import { TabernaLoginPage } from '@features/taberna/profiles/pages/TabernaLoginPage'
 import { CategoryDetailPage } from '@features/taberna/product/pages/CategoryDetailPage'
 import { ProductDetailPage } from '@features/taberna/product/pages/ProductDetailPage'
 import { ProductHomePage } from '@features/taberna/product/pages/ProductHomePage'
 import { SearchPage } from '@features/taberna/product/pages/SearchPage'
 import { RequireAuth } from '@router/require-auth'
-import { LoginPage } from '@shared/components/LoginPage'
 import { SignupPage } from '@shared/components/SignupPage'
-import { StubPage } from '@shared/ui/StubPage'
 
 export const tabernaRoutes: RouteObject[] = [
   {
@@ -24,19 +24,13 @@ export const tabernaRoutes: RouteObject[] = [
       },
       {
         path: 'taberna/login',
-        element: (
-          <LoginPage
-            app="taberna"
-            signupPath="/taberna/signup"
-            defaultRedirect="/taberna/dashboard"
-          />
-        ),
+        element: <TabernaLoginPage />,
       },
       {
         path: 'taberna/dashboard',
         element: (
           <RequireAuth app="taberna">
-            <StubPage title="Taberna — Dashboard" />
+            <DashboardPage />
           </RequireAuth>
         ),
       },

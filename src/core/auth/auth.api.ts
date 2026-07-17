@@ -10,14 +10,33 @@ type TokenResponse = {
   refresh: string
 }
 
+export type LoginOptions = {
+  cartId?: string | null
+}
+
 export async function login(
   app: AppName,
   credentials: LoginCredentials,
+  options?: LoginOptions,
 ): Promise<AuthTokens> {
-  const { data } = await api.post<TokenResponse>(getTokenObtainUrl(app), {
+  const payload: Record<string, string> = {
     email: credentials.email,
     password: credentials.password,
-  })
+  }
+
+  if (app === 'taberna') {
+    payload.login_source = 'taberna'
+    payload.activeApp = 'taberna'
+    if (options?.cartId) {
+      payload.cart_id = options.cartId
+    }
+  }
+
+  if (app === 'social') {
+    payload.login_source = 'social'
+  }
+
+  const { data } = await api.post<TokenResponse>(getTokenObtainUrl(app), payload)
   return { access: data.access, refresh: data.refresh }
 }
 

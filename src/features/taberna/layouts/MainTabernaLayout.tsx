@@ -41,6 +41,7 @@ export function MainTabernaLayout() {
   const logout = useAuthStore((s) => s.logout)
   const cartQuantity = useCartStore((s) => s.cart.quantity || 0)
   const loadCart = useCartStore((s) => s.loadCart)
+  const clearCartId = useCartStore((s) => s.clearCartId)
   const { data: categories = [] } = useProductCategories()
   const { mode, setMode } = useColorScheme()
   const theme = useTheme()
@@ -69,7 +70,9 @@ export function MainTabernaLayout() {
 
   const handleLogout = () => {
     logout()
+    clearCartId()
     closeMenus()
+    void loadCart({ silent: true })
     void navigate('/taberna/login')
   }
 
