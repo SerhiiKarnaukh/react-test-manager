@@ -1,4 +1,4 @@
-import { useEffectEvent, useState, type FormEvent } from 'react'
+import { useCallback, useState, type FormEvent } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import Avatar from '@mui/material/Avatar'
 import Box from '@mui/material/Box'
@@ -39,11 +39,11 @@ export function SearchPage() {
   const hasSearched = submittedQuery.length > 0
   const showSkeleton = hasSearched && isPending && !data
 
-  const onReachBottom = useEffectEvent(() => {
+  const onReachBottom = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
       void fetchNextPage()
     }
-  })
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage])
 
   usePageBottomScroll(onReachBottom, Boolean(hasNextPage))
 

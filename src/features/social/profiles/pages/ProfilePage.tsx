@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent } from 'react'
+import { useCallback, useEffect } from 'react'
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom'
 import Avatar from '@mui/material/Avatar'
 import Box from '@mui/material/Box'
@@ -8,7 +8,6 @@ import CardContent from '@mui/material/CardContent'
 import CircularProgress from '@mui/material/CircularProgress'
 import Typography from '@mui/material/Typography'
 import { useAuthStore } from '@core/auth/auth.store'
-import { getOrCreateChat } from '@features/social/chat/api/chat'
 import { CreatePostForm } from '@features/social/posts/components/CreatePostForm'
 import { EmptyState } from '@features/social/posts/components/EmptyState'
 import { PostListSkeleton } from '@features/social/posts/components/PostListSkeleton'
@@ -18,6 +17,7 @@ import { usePageBottomScroll } from '@features/social/posts/hooks/usePageBottomS
 import { SOCIAL_DEFAULT_AVATAR } from '@features/social/profiles/api/profile.models'
 import { PeopleYouMayKnow } from '@features/social/profiles/components/PeopleYouMayKnow'
 import { ProfilePageLayout } from '@features/social/profiles/components/ProfilePageLayout'
+import { openChatForProfileSlug } from '@features/social/profiles/profile-chat.utils'
 import {
   canSendFriendshipRequestFromPages,
   flattenProfilePostPages,
@@ -26,20 +26,6 @@ import {
   useProfilePosts,
   useSendFriendRequest,
 } from '@features/social/profiles/hooks/useProfile'
-
-/** Opens (or creates) a chat for a profile slug; no-ops when slug is missing. */
-export async function openChatForProfileSlug(
-  slug: string | undefined,
-  navigate: (path: string) => void,
-) {
-  if (!slug) return
-  try {
-    await getOrCreateChat(slug)
-    void navigate('/social/chat')
-  } catch {
-    void navigate('/social/chat')
-  }
-}
 
 export function ProfilePage() {
   const { slug } = useParams<{ slug: string }>()
@@ -63,11 +49,11 @@ export function ProfilePage() {
     }
   }, [profileName])
 
-  const onReachBottom = useEffectEvent(() => {
+  const onReachBottom = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
       void fetchNextPage()
     }
-  })
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage])
 
   usePageBottomScroll(onReachBottom, Boolean(hasNextPage))
 

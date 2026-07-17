@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
-import { afterEach, beforeEach, expect, vi } from 'vitest'
+import { expect, vi } from 'vitest'
 import { conversationKey } from '@features/social/chat/hooks/useChat'
 import { useChatSocket } from '@features/social/chat/hooks/useChatSocket'
 import { notificationsKey } from '@features/social/notifications/hooks/useNotifications'

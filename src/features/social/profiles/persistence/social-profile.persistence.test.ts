@@ -1,4 +1,4 @@
-import { beforeEach, expect } from 'vitest'
+import { expect } from 'vitest'
 import {
   clearSocialUserStorage,
   persistSocialUser,

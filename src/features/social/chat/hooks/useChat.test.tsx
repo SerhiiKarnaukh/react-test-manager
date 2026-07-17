@@ -4,7 +4,7 @@ import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
 import type { ReactNode } from 'react'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, expect } from 'vitest'
+import { expect } from 'vitest'
 import { useAlertStore } from '@core/alert/alert.store'
 import { useAuthStore } from '@core/auth/auth.store'
 import {

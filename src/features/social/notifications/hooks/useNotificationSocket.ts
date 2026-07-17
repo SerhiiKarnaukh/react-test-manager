@@ -44,5 +44,5 @@ export function useNotificationSocket(userId: number | undefined, enabled: boole
         socketRef.current = null
       }
     }
-  }, [enabled, userId, handleMessage])
+  }, [enabled, userId])
 }

@@ -179,7 +179,11 @@ describe('social chat / notifications / profile pages', () => {
       readyState = 1
       onmessage: ((event: { data: string }) => void) | null = null
       close = vi.fn()
-      constructor(public url: string) {}
+      url: string
+
+      constructor(url: string) {
+        this.url = url
+      }
     }
     vi.stubGlobal('WebSocket', MockWebSocket as unknown as typeof WebSocket)
   })

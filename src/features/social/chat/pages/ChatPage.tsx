@@ -34,23 +34,17 @@ const fullWidthCardSx = {
 export function ChatPage() {
   const { data: currentUser } = useCurrentSocialUser()
   const { data: conversations = [], isPending } = useConversations(Boolean(currentUser?.id))
-  const [activeId, setActiveId] = useState<number | null>(null)
+  const [selectedId, setSelectedId] = useState<number | null>(null)
   const [messageBody, setMessageBody] = useState('')
 
   useEffect(() => {
     document.title = 'Chat | Social Network'
   }, [])
 
-  useEffect(() => {
-    if (!conversations.length) {
-      setActiveId(null)
-      return
-    }
-    setActiveId((current) => {
-      if (current && conversations.some((c) => c.id === current)) return current
-      return conversations[0]?.id ?? null
-    })
-  }, [conversations])
+  const activeId =
+    selectedId && conversations.some((conversation) => conversation.id === selectedId)
+      ? selectedId
+      : (conversations[0]?.id ?? null)
 
   const { data: activeConversation } = useConversation(activeId)
   const sendMessage = useSendChatMessage(activeId)
@@ -127,7 +121,7 @@ export function ChatPage() {
               <Card
                 key={conversation.id}
                 variant="outlined"
-                onClick={() => setActiveId(conversation.id)}
+                onClick={() => setSelectedId(conversation.id)}
                 sx={{
                   ...fullWidthCardSx,
                   cursor: 'pointer',

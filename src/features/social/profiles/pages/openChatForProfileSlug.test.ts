@@ -1,5 +1,5 @@
 import { expect, vi } from 'vitest'
-import { openChatForProfileSlug } from '@features/social/profiles/pages/ProfilePage'
+import { openChatForProfileSlug } from '@features/social/profiles/profile-chat.utils'
 import * as chatApi from '@features/social/chat/api/chat'
 
 describe('openChatForProfileSlug', () => {

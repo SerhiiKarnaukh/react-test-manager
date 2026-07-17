@@ -59,5 +59,5 @@ export function useChatSocket(conversationId: number | null, userId: number | un
         socketRef.current = null
       }
     }
-  }, [conversationId, userId, handleMessage])
+  }, [conversationId, userId])
 }

@@ -1,4 +1,4 @@
-import { useEffectEvent } from 'react'
+import { useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import CircularProgress from '@mui/material/CircularProgress'
@@ -17,11 +17,11 @@ export function TrendPage() {
   const { data, isPending, isFetchingNextPage, hasNextPage, fetchNextPage } = useTrendPosts(id)
   const posts = flattenPostPages(data)
 
-  const onReachBottom = useEffectEvent(() => {
+  const onReachBottom = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
       void fetchNextPage()
     }
-  })
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage])
 
   usePageBottomScroll(onReachBottom, Boolean(hasNextPage))
 

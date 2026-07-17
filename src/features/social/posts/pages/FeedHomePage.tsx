@@ -1,4 +1,4 @@
-import { useEffectEvent } from 'react'
+import { useCallback } from 'react'
 import Box from '@mui/material/Box'
 import CircularProgress from '@mui/material/CircularProgress'
 import { useAuthStore } from '@core/auth/auth.store'
@@ -17,11 +17,11 @@ export function FeedHomePage() {
   const { data, isPending, isFetchingNextPage, hasNextPage, fetchNextPage } = usePostsFeed()
   const posts = flattenPostPages(data)
 
-  const onReachBottom = useEffectEvent(() => {
+  const onReachBottom = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
       void fetchNextPage()
     }
-  })
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage])
 
   usePageBottomScroll(onReachBottom, Boolean(hasNextPage))
 

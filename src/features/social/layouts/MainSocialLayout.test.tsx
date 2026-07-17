@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from '@mui/material/styles'
@@ -50,7 +50,11 @@ describe('MainSocialLayout', () => {
       readyState = 1
       onmessage: ((event: { data: string }) => void) | null = null
       close = vi.fn()
-      constructor(public url: string) {}
+      url: string
+
+      constructor(url: string) {
+        this.url = url
+      }
     }
     vi.stubGlobal('WebSocket', MockWebSocket as unknown as typeof WebSocket)
   })

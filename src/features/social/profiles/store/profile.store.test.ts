@@ -1,4 +1,4 @@
-import { beforeEach, expect } from 'vitest'
+import { expect } from 'vitest'
 import { useProfileStore } from '@features/social/profiles/store/profile.store'
 import type { SocialUser } from '@features/social/profiles/api/profile.models'
 
