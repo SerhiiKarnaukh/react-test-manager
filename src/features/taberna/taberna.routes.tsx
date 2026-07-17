@@ -1,4 +1,5 @@
 import type { RouteObject } from 'react-router-dom'
+import { CartPage } from '@features/taberna/cart/pages/CartPage'
 import { MainTabernaLayout } from '@features/taberna/layouts/MainTabernaLayout'
 import { CategoryDetailPage } from '@features/taberna/product/pages/CategoryDetailPage'
 import { ProductDetailPage } from '@features/taberna/product/pages/ProductDetailPage'
@@ -45,7 +46,7 @@ export const tabernaRoutes: RouteObject[] = [
         element: <ProductDetailPage />,
       },
       { path: 'taberna/search', element: <SearchPage /> },
-      { path: 'taberna/cart', element: <StubPage title="Taberna — Cart" /> },
+      { path: 'taberna/cart', element: <CartPage /> },
       {
         path: 'taberna/cart/checkout',
         element: (

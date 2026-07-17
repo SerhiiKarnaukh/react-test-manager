@@ -17,6 +17,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import ShoppingBasketIcon from '@mui/icons-material/ShoppingBasket'
 import { useAlertStore } from '@core/alert/alert.store'
+import { useCartStore } from '@features/taberna/cart/store/cart.store'
 import {
   EMPTY_TABERNA_PRODUCT_DETAIL,
   type TabernaVariationOption,
@@ -30,6 +31,8 @@ export function ProductDetailPage() {
     productSlug,
   )
   const enqueue = useAlertStore((s) => s.enqueue)
+  const addToCart = useCartStore((s) => s.addToCart)
+  const cartLoading = useCartStore((s) => s.isLoading)
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [selectedColor, setSelectedColor] = useState('')
   const [selectedSize, setSelectedSize] = useState('')
@@ -57,7 +60,7 @@ export function ProductDetailPage() {
     return message
   }
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     const nextColorError = validateVariation(
       variations.colors,
       selectedColor,
@@ -69,7 +72,12 @@ export function ProductDetailPage() {
 
     if (nextColorError || nextSizeError) return
 
-    enqueue('info', 'Cart actions will be connected in Phase 4.')
+    try {
+      await addToCart(product.id, selectedColor, selectedSize)
+      enqueue('success', 'The product was added to the cart')
+    } catch {
+      // Error toast is handled in the cart store.
+    }
   }
 
   if (isPending) {
@@ -227,7 +235,8 @@ export function ProductDetailPage() {
               <Button
                 variant="contained"
                 startIcon={<ShoppingBasketIcon />}
-                onClick={handleAddToCart}
+                onClick={() => void handleAddToCart()}
+                disabled={cartLoading || !product.id}
               >
                 Add to Cart
               </Button>

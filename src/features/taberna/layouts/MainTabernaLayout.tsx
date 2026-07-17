@@ -25,6 +25,7 @@ import ShoppingBasketIcon from '@mui/icons-material/ShoppingBasket'
 import StorefrontIcon from '@mui/icons-material/Storefront'
 import { ThemeProvider, useColorScheme, useTheme } from '@mui/material/styles'
 import { useAuthStore } from '@core/auth/auth.store'
+import { useCartStore } from '@features/taberna/cart/store/cart.store'
 import { TabernaSearchDialog } from '@features/taberna/product/components/TabernaSearchDialog'
 import { useProductCategories } from '@features/taberna/product/hooks/useProducts'
 import { tabernaTheme } from '@features/taberna/taberna.theme'
@@ -38,6 +39,8 @@ export function MainTabernaLayout() {
   const setActiveApp = useAuthStore((s) => s.setActiveApp)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated())
   const logout = useAuthStore((s) => s.logout)
+  const cartQuantity = useCartStore((s) => s.cart.quantity || 0)
+  const loadCart = useCartStore((s) => s.loadCart)
   const { data: categories = [] } = useProductCategories()
   const { mode, setMode } = useColorScheme()
   const theme = useTheme()
@@ -51,6 +54,10 @@ export function MainTabernaLayout() {
   useEffect(() => {
     setActiveApp('taberna')
   }, [setActiveApp])
+
+  useEffect(() => {
+    void loadCart({ silent: true })
+  }, [loadCart])
 
   const nextMode = mode === 'dark' ? 'light' : 'dark'
 
@@ -180,7 +187,7 @@ export function MainTabernaLayout() {
                 )}
                 <MenuItem component={RouterLink} to="/taberna/cart" onClick={closeMenus}>
                   <ShoppingBasketIcon fontSize="small" sx={{ mr: 1 }} />
-                  Cart (0)
+                  Cart ({cartQuantity})
                 </MenuItem>
                 <MenuItem onClick={() => setMode(nextMode)}>
                   {mode === 'dark' ? (
@@ -300,7 +307,7 @@ export function MainTabernaLayout() {
                 component={RouterLink}
                 to="/taberna/cart"
                 startIcon={
-                  <Badge badgeContent={0} color="warning">
+                  <Badge badgeContent={cartQuantity} color="warning" showZero={false}>
                     <ShoppingBasketIcon />
                   </Badge>
                 }
