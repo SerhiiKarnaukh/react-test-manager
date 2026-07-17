@@ -1,5 +1,9 @@
 import type { RouteObject } from 'react-router-dom'
 import { MainSocialLayout } from '@features/social/layouts/MainSocialLayout'
+import { FeedHomePage } from '@features/social/posts/pages/FeedHomePage'
+import { PostDetailPage } from '@features/social/posts/pages/PostDetailPage'
+import { SearchPage } from '@features/social/posts/pages/SearchPage'
+import { TrendPage } from '@features/social/posts/pages/TrendPage'
 import { RequireAuth } from '@router/require-auth'
 import { LoginPage } from '@shared/components/LoginPage'
 import { SignupPage } from '@shared/components/SignupPage'
@@ -9,7 +13,7 @@ export const socialRoutes: RouteObject[] = [
   {
     element: <MainSocialLayout />,
     children: [
-      { path: 'social/home', element: <StubPage title="Social — Feed" /> },
+      { path: 'social/home', element: <FeedHomePage /> },
       {
         path: 'social/profile/edit',
         element: (
@@ -19,10 +23,6 @@ export const socialRoutes: RouteObject[] = [
         ),
       },
       {
-        path: 'social/profile/:slug',
-        element: <StubPage title="Social — Profile" />,
-      },
-      {
         path: 'social/profile/:slug/friends',
         element: (
           <RequireAuth app="social">
@@ -30,8 +30,11 @@ export const socialRoutes: RouteObject[] = [
           </RequireAuth>
         ),
       },
-      { path: 'social/:id', element: <StubPage title="Social — Post" /> },
-      { path: 'social/trends/:id', element: <StubPage title="Social — Trend" /> },
+      {
+        path: 'social/profile/:slug',
+        element: <StubPage title="Social — Profile" />,
+      },
+      { path: 'social/trends/:id', element: <TrendPage /> },
       {
         path: 'social/chat',
         element: (
@@ -48,7 +51,7 @@ export const socialRoutes: RouteObject[] = [
           </RequireAuth>
         ),
       },
-      { path: 'social/search', element: <StubPage title="Social — Search" /> },
+      { path: 'social/search', element: <SearchPage /> },
       {
         path: 'social/signup',
         element: <SignupPage app="social" loginPath="/social/login" />,
@@ -71,6 +74,8 @@ export const socialRoutes: RouteObject[] = [
           </RequireAuth>
         ),
       },
+      // Must stay last so static paths like /social/search are not captured as :id
+      { path: 'social/:id', element: <PostDetailPage /> },
     ],
   },
 ]
