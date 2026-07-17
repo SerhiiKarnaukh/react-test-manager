@@ -59,4 +59,12 @@ describe('social profile persistence', () => {
 
     expect(localStorage.getItem('user.email')).not.toContain('john@example.com')
   })
+
+  it('returns null field when stored value is empty', () => {
+    localStorage.setItem('access', 'token')
+    persistSocialUser(sampleUser)
+    localStorage.setItem('user.email', '')
+
+    expect(restoreSocialUser()?.email).toBeNull()
+  })
 })

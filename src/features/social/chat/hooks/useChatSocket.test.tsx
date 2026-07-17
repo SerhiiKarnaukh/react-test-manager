@@ -104,6 +104,37 @@ describe('social websocket hooks', () => {
     })
   })
 
+  it('useChatSocket seeds cache when conversation was empty and ignores duplicates/malformed', () => {
+    const client = new QueryClient()
+    renderHook(() => useChatSocket(5, 42), { wrapper: createWrapper(client) })
+
+    const message = {
+      id: 1,
+      body: 'First',
+      created_at_formatted: 'now',
+      created_by: { id: 2, first_name: 'Jane', last_name: 'Roe', avatar_url: null },
+    }
+
+    act(() => {
+      sockets[0]?.onmessage?.({ data: JSON.stringify({ message }) })
+    })
+    expect(client.getQueryData(conversationKey(5))).toEqual({
+      id: 5,
+      messages: [message],
+    })
+
+    act(() => {
+      sockets[0]?.onmessage?.({ data: JSON.stringify({ message }) })
+    })
+    expect(
+      (client.getQueryData(conversationKey(5)) as { messages: unknown[] }).messages,
+    ).toHaveLength(1)
+
+    act(() => {
+      sockets[0]?.onmessage?.({ data: 'not-json' })
+    })
+  })
+
   it('useChatSocket ignores frames without message', () => {
     const client = new QueryClient()
     client.setQueryData(conversationKey(5), { id: 5, messages: [] })
@@ -115,6 +146,48 @@ describe('social websocket hooks', () => {
     })
 
     expect(client.getQueryData(conversationKey(5))).toEqual({ id: 5, messages: [] })
+  })
+
+  it('useChatSocket handleMessage no-ops without conversation id', () => {
+    const client = new QueryClient()
+    const { rerender } = renderHook(
+      ({ conversationId }: { conversationId: number | null }) =>
+        useChatSocket(conversationId, 42),
+      {
+        wrapper: createWrapper(client),
+        initialProps: { conversationId: 5 as number | null },
+      },
+    )
+
+    const handler = sockets[0]?.onmessage
+    rerender({ conversationId: null })
+    act(() => {
+      handler?.({
+        data: JSON.stringify({
+          message: {
+            id: 1,
+            body: 'x',
+            created_at_formatted: 'now',
+            created_by: { id: 2, first_name: 'A', last_name: 'B', avatar_url: null },
+          },
+        }),
+      })
+    })
+  })
+
+  it('useNotificationSocket ignores empty message payloads and malformed frames', () => {
+    const client = new QueryClient()
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries')
+
+    renderHook(() => useNotificationSocket(7, true), {
+      wrapper: createWrapper(client),
+    })
+
+    act(() => {
+      sockets[0]?.onmessage?.({ data: JSON.stringify({ message: null }) })
+      sockets[0]?.onmessage?.({ data: 'not-json' })
+    })
+    expect(invalidateSpy).not.toHaveBeenCalled()
   })
 
   it('useChatSocket reconnects when conversation id changes', () => {

@@ -24,5 +24,13 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     globals: true,
     css: true,
+    coverage: {
+      include: ['src/features/social/**/*.{ts,tsx}'],
+      exclude: [
+        'src/features/social/**/*.test.*',
+        'src/features/social/**/*.models.ts',
+        'src/features/social/social.theme.ts',
+      ],
+    },
   },
 })

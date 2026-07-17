@@ -11,12 +11,16 @@ import {
   canSendFriendshipRequestFromPages,
   flattenProfilePostPages,
   profileFromPages,
+  useChangePassword,
+  useCurrentSocialUser,
   useFriendSuggestions,
   useFriendsData,
   useHandleFriendRequest,
   useProfilePosts,
   useSendFriendRequest,
+  useUpdateProfile,
 } from '@features/social/profiles/hooks/useProfile'
+import { useAlertStore } from '@core/alert/alert.store'
 
 const postsBase = '/api/social-posts'
 const profilesBase = '/api/social-profiles'
@@ -100,6 +104,39 @@ const server = setupServer(
   http.get(`*${profilesBase}/friends/suggested/`, () =>
     HttpResponse.json([{ id: 3, slug: 'sam', full_name: 'Sam Smith', avatar_url: null }]),
   ),
+  http.get(`*${profilesBase}/me/`, () =>
+    HttpResponse.json({
+      id: 1,
+      username: 'john',
+      first_name: 'John',
+      last_name: 'Doe',
+      email: 'j@e.com',
+      slug: 'john',
+      full_name: 'John Doe',
+      avatar_url: null,
+    }),
+  ),
+  http.post(`*${profilesBase}/editprofile/`, () =>
+    HttpResponse.json({
+      message: 'Information updated successfully',
+      new_slug: 'john-new',
+      new_avatar: 'https://example.com/a.jpg',
+    }),
+  ),
+  http.post(`*${profilesBase}/editpassword/`, async ({ request }) => {
+    const body = (await request.json()) as { new_password1?: string }
+    if (body.new_password1 === 'bad') {
+      return HttpResponse.json({ message: 'plain error' })
+    }
+    if (body.new_password1 === 'jsonerr') {
+      return HttpResponse.json({
+        message: JSON.stringify({
+          old_password: [{ message: 'Wrong password' }],
+        }),
+      })
+    }
+    return HttpResponse.json({ message: 'success' })
+  }),
 )
 
 function createWrapper(client: QueryClient) {
@@ -124,7 +161,15 @@ describe('social profile hooks', () => {
     friendsCallCount = 0
     localStorage.clear()
     useAuthStore.setState({ access: 'token', refresh: 'r', activeApp: 'social' })
-    useProfileStore.setState({ user: { ...viewedProfile, username: 'john', email: 'j@e.com' } })
+    useProfileStore.setState({
+      user: {
+        ...viewedProfile,
+        username: 'john',
+        email: 'j@e.com',
+        full_name: 'John Doe',
+      },
+    })
+    useAlertStore.setState({ queue: [] })
   })
   afterEach(() => server.resetHandlers())
   afterAll(() => server.close())
@@ -198,5 +243,213 @@ describe('social profile hooks', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(result.current.data?.[0]?.slug).toBe('sam')
+  })
+
+  it('useCurrentSocialUser loads me and syncs store', async () => {
+    const client = createClient()
+    const { result } = renderHook(() => useCurrentSocialUser(), {
+      wrapper: createWrapper(client),
+    })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data?.slug).toBe('john')
+    expect(useProfileStore.getState().user?.email).toBe('j@e.com')
+  })
+
+  it('useSendFriendRequest shows error when already sent', async () => {
+    server.use(
+      http.post(`*${profilesBase}/friends/:slug/request/`, () =>
+        HttpResponse.json({ message: 'request already sent' }),
+      ),
+    )
+    const client = createClient()
+    const send = renderHook(() => useSendFriendRequest('jane'), {
+      wrapper: createWrapper(client),
+    })
+    await act(async () => {
+      await send.result.current.mutateAsync()
+    })
+    expect(useAlertStore.getState().queue[0]?.message).toBe('The request has already been sent!')
+  })
+
+  it('useUpdateProfile updates user and navigates on success', async () => {
+    const client = createClient()
+    const update = renderHook(() => useUpdateProfile(), { wrapper: createWrapper(client) })
+    const formData = new FormData()
+    formData.append('username', 'john-new')
+    formData.append('first_name', 'John')
+    formData.append('last_name', 'Doe')
+    formData.append('email', 'j@e.com')
+
+    await act(async () => {
+      await update.result.current.mutateAsync(formData)
+    })
+
+    expect(useProfileStore.getState().user?.slug).toBe('john-new')
+    expect(useAlertStore.getState().queue[0]?.severity).toBe('success')
+  })
+
+  it('useUpdateProfile shows error when backend message is not success', async () => {
+    server.use(
+      http.post(`*${profilesBase}/editprofile/`, () =>
+        HttpResponse.json({ message: 'Invalid data', new_slug: 'x', new_avatar: null }),
+      ),
+    )
+    const client = createClient()
+    const update = renderHook(() => useUpdateProfile(), { wrapper: createWrapper(client) })
+    await act(async () => {
+      await update.result.current.mutateAsync(new FormData())
+    })
+    expect(useAlertStore.getState().queue[0]?.message).toBe('Invalid data')
+  })
+
+  it('useChangePassword handles success and structured errors', async () => {
+    const client = createClient()
+    const change = renderHook(() => useChangePassword(), { wrapper: createWrapper(client) })
+
+    await act(async () => {
+      await change.result.current.mutateAsync({
+        old_password: 'oldpass12',
+        new_password1: 'newpass12',
+        new_password2: 'newpass12',
+      })
+    })
+    expect(useAlertStore.getState().queue[0]?.message).toBe('The information was saved')
+
+    useAlertStore.setState({ queue: [] })
+    await act(async () => {
+      await change.result.current.mutateAsync({
+        old_password: 'x',
+        new_password1: 'jsonerr',
+        new_password2: 'jsonerr',
+      })
+    })
+    expect(useAlertStore.getState().queue[0]?.message).toContain('Wrong password')
+
+    useAlertStore.setState({ queue: [] })
+    await act(async () => {
+      await change.result.current.mutateAsync({
+        old_password: 'x',
+        new_password1: 'bad',
+        new_password2: 'bad',
+      })
+    })
+    expect(useAlertStore.getState().queue[0]?.message).toBe('plain error')
+  })
+
+  it('helpers return defaults for empty profile pages', () => {
+    expect(flattenProfilePostPages(undefined)).toEqual([])
+    expect(profileFromPages(undefined)).toBeNull()
+    expect(canSendFriendshipRequestFromPages(undefined)).toBe(false)
+  })
+
+  it('useCurrentSocialUser logs out on 404 me', async () => {
+    server.use(
+      http.get(`*${profilesBase}/me/`, () =>
+        HttpResponse.json({ message: 'gone' }, { status: 404 }),
+      ),
+    )
+    const client = createClient()
+    renderHook(() => useCurrentSocialUser(), { wrapper: createWrapper(client) })
+    await waitFor(() => expect(useAuthStore.getState().access).toBeNull())
+    expect(useProfileStore.getState().user).toBeNull()
+  })
+
+  it('useSendFriendRequest onError requires login message', async () => {
+    server.use(
+      http.post(`*${profilesBase}/friends/:slug/request/`, () =>
+        HttpResponse.json({ detail: 'auth' }, { status: 401 }),
+      ),
+    )
+    const client = createClient()
+    const send = renderHook(() => useSendFriendRequest('jane'), {
+      wrapper: createWrapper(client),
+    })
+    await act(async () => {
+      await send.result.current.mutateAsync().catch(() => undefined)
+    })
+    expect(useAlertStore.getState().queue[0]?.message).toBe('You must be logged in!')
+  })
+
+  it('useHandleFriendRequest and profile mutations surface network errors', async () => {
+    server.use(
+      http.post(`*${profilesBase}/friends/:slug/:status/`, () =>
+        HttpResponse.json({ detail: 'fail' }, { status: 500 }),
+      ),
+      http.post(`*${profilesBase}/editprofile/`, () =>
+        HttpResponse.json({ detail: 'fail' }, { status: 500 }),
+      ),
+      http.post(`*${profilesBase}/editpassword/`, () =>
+        HttpResponse.json({ detail: 'fail' }, { status: 500 }),
+      ),
+    )
+    const client = createClient()
+    const wrapper = createWrapper(client)
+
+    const handle = renderHook(() => useHandleFriendRequest('john'), { wrapper })
+    await act(async () => {
+      await handle.result.current
+        .mutateAsync({ slug: 'jane', status: 'accepted' })
+        .catch(() => undefined)
+    })
+    expect(useAlertStore.getState().queue[0]?.severity).toBe('error')
+
+    useAlertStore.setState({ queue: [] })
+    const update = renderHook(() => useUpdateProfile(), { wrapper })
+    await act(async () => {
+      await update.result.current.mutateAsync(new FormData()).catch(() => undefined)
+    })
+    expect(useAlertStore.getState().queue[0]?.severity).toBe('error')
+
+    useAlertStore.setState({ queue: [] })
+    const change = renderHook(() => useChangePassword(), { wrapper })
+    await act(async () => {
+      await change.result.current
+        .mutateAsync({
+          old_password: 'oldpass12',
+          new_password1: 'newpass12',
+          new_password2: 'newpass12',
+        })
+        .catch(() => undefined)
+    })
+    expect(useAlertStore.getState().queue[0]?.severity).toBe('error')
+  })
+
+  it('useProfilePosts error alert and friend request with empty cache', async () => {
+    server.use(
+      http.get(`*${postsBase}/profile/john/`, () =>
+        HttpResponse.json({ detail: 'fail' }, { status: 500 }),
+      ),
+    )
+    const client = createClient()
+    const wrapper = createWrapper(client)
+    renderHook(() => useProfilePosts('john'), { wrapper })
+    await waitFor(() => {
+      expect(useAlertStore.getState().queue.some((a) => a.severity === 'error')).toBe(true)
+    })
+
+    useAlertStore.setState({ queue: [] })
+    useProfileStore.setState({ user: null })
+    server.use(
+      http.post(`*${profilesBase}/editprofile/`, () =>
+        HttpResponse.json({
+          message: 'Information updated successfully',
+          new_slug: 'x',
+          new_avatar: null,
+        }),
+      ),
+    )
+    const update = renderHook(() => useUpdateProfile(), { wrapper })
+    await act(async () => {
+      await update.result.current.mutateAsync(new FormData())
+    })
+
+    client.setQueryData(['social', 'posts', 'profile', 'ghost'], {
+      pages: [],
+      pageParams: [],
+    })
+    const send = renderHook(() => useSendFriendRequest('ghost'), { wrapper })
+    await act(async () => {
+      await send.result.current.mutateAsync()
+    })
   })
 })

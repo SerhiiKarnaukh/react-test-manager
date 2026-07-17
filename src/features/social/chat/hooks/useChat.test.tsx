@@ -5,6 +5,7 @@ import { setupServer } from 'msw/node'
 import type { ReactNode } from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, expect } from 'vitest'
+import { useAlertStore } from '@core/alert/alert.store'
 import { useAuthStore } from '@core/auth/auth.store'
 import {
   conversationKey,
@@ -102,6 +103,12 @@ describe('navigateAfterRead', () => {
       navigateAfterRead({ id: 4, body: '', type_of_notification: 'friendship_request' }, 'john'),
     ).toBe('/social/profile/john/friends')
   })
+
+  it('returns null when friendship notification has no slug', () => {
+    expect(
+      navigateAfterRead({ id: 4, body: '', type_of_notification: 'friendship_request' }, undefined),
+    ).toBeNull()
+  })
 })
 
 describe('social chat & notification hooks', () => {
@@ -157,6 +164,40 @@ describe('social chat & notification hooks', () => {
     expect(client.getQueryData(conversationKey(5))).toEqual(active)
   })
 
+  it('useSendChatMessage rejects without conversation id', async () => {
+    const client = createClient()
+    const send = renderHook(() => useSendChatMessage(null), {
+      wrapper: createWrapper(client),
+    })
+    await expect(send.result.current.mutateAsync('Ping')).rejects.toThrow(
+      'No active conversation',
+    )
+  })
+
+  it('chat query and send errors enqueue alerts', async () => {
+    server.use(
+      http.get(`*${chatBase}/`, () => HttpResponse.json({ detail: 'x' }, { status: 500 })),
+      http.get(`*${chatBase}/5/`, () => HttpResponse.json({ detail: 'x' }, { status: 500 })),
+      http.post(`*${chatBase}/5/send/`, () =>
+        HttpResponse.json({ detail: 'x' }, { status: 500 }),
+      ),
+    )
+    useAlertStore.setState({ queue: [] })
+    const client = createClient()
+    const wrapper = createWrapper(client)
+
+    renderHook(() => useConversations(), { wrapper })
+    renderHook(() => useConversation(5), { wrapper })
+    const send = renderHook(() => useSendChatMessage(5), { wrapper })
+    await act(async () => {
+      await send.result.current.mutateAsync('Ping').catch(() => undefined)
+    })
+
+    await waitFor(() => {
+      expect(useAlertStore.getState().queue.length).toBeGreaterThanOrEqual(2)
+    })
+  })
+
   it('useNotifications exposes unreadCount from list length', async () => {
     const client = createClient()
     const { result } = renderHook(() => useNotifications(), {
@@ -178,5 +219,25 @@ describe('social chat & notification hooks', () => {
     })
 
     expect(client.getQueryData(notificationsKey)).toEqual([])
+  })
+
+  it('useNotifications and mark-read error paths enqueue alerts', async () => {
+    server.use(
+      http.get(`*${notifBase}/`, () => HttpResponse.json({ detail: 'x' }, { status: 500 })),
+      http.post(`*${notifBase}/read/1/`, () =>
+        HttpResponse.json({ detail: 'x' }, { status: 500 }),
+      ),
+    )
+    useAlertStore.setState({ queue: [] })
+    const client = createClient()
+    const wrapper = createWrapper(client)
+    renderHook(() => useNotifications(), { wrapper })
+    const mark = renderHook(() => useMarkNotificationRead(), { wrapper })
+    await act(async () => {
+      await mark.result.current.mutateAsync(notification).catch(() => undefined)
+    })
+    await waitFor(() => {
+      expect(useAlertStore.getState().queue.length).toBeGreaterThanOrEqual(1)
+    })
   })
 })

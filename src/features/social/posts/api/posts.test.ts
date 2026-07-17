@@ -7,6 +7,9 @@ import {
   deletePost,
   fetchFeed,
   fetchPost,
+  fetchProfilePosts,
+  fetchSearchPage,
+  fetchTrendPosts,
   fetchTrends,
   getPathAndSearch,
   likePost,
@@ -36,6 +39,24 @@ const samplePost = {
 }
 
 const server = setupServer(
+  http.get(`*${baseUrl}/profile/jane-doe/`, () =>
+    HttpResponse.json({
+      results: {
+        posts: [samplePost],
+        profile: {
+          id: 1,
+          slug: 'jane-doe',
+          first_name: 'Jane',
+          last_name: 'Doe',
+          avatar_url: null,
+          friends_count: 2,
+          posts_count: 1,
+        },
+        can_send_friendship_request: true,
+      },
+      next: null,
+    }),
+  ),
   http.get(`*${baseUrl}/`, ({ request }) => {
     const url = new URL(request.url)
     if (url.searchParams.get('trend') === 'react') {
@@ -146,5 +167,48 @@ describe('social posts api', () => {
     await expect(likePost(10)).resolves.toEqual({ message: 'like created' })
     await expect(reportPost(10)).resolves.toEqual({})
     await expect(deletePost(10)).resolves.toEqual({})
+  })
+
+  it('fetchFeed with pageUrl uses path+search', async () => {
+    await expect(
+      fetchFeed('https://example.com/api/social-posts/?page=2'),
+    ).resolves.toMatchObject({ results: { posts: [samplePost] } })
+  })
+
+  it('fetchTrendPosts loads by trend id and by page url', async () => {
+    await expect(fetchTrendPosts('react')).resolves.toMatchObject({
+      results: { posts: [{ id: 11 }] },
+    })
+    await expect(
+      fetchTrendPosts('react', 'https://example.com/api/social-posts/?page=2'),
+    ).resolves.toMatchObject({ results: { posts: [samplePost] } })
+  })
+
+  it('fetchProfilePosts loads profile posts', async () => {
+    const data = await fetchProfilePosts('jane-doe')
+    expect(data.results.profile.slug).toBe('jane-doe')
+    expect(data.results.posts).toHaveLength(1)
+  })
+
+  it('fetchProfilePosts with pageUrl uses path+search', async () => {
+    await expect(
+      fetchProfilePosts('jane-doe', 'https://example.com/api/social-posts/profile/jane-doe/'),
+    ).resolves.toMatchObject({ results: { posts: [samplePost] } })
+  })
+
+  it('fetchSearchPage injects query param', async () => {
+    server.use(
+      http.get('*/api/social-posts/search/', ({ request }) => {
+        const url = new URL(request.url)
+        expect(url.searchParams.get('query')).toBe('hello')
+        return HttpResponse.json({
+          results: { posts: [samplePost], profiles: [] },
+          next: null,
+        })
+      }),
+    )
+    await expect(
+      fetchSearchPage('https://example.com/api/social-posts/search/?page=2', 'hello'),
+    ).resolves.toMatchObject({ results: { posts: [samplePost] } })
   })
 })

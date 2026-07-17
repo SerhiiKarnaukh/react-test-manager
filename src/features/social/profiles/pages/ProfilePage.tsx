@@ -27,6 +27,20 @@ import {
   useSendFriendRequest,
 } from '@features/social/profiles/hooks/useProfile'
 
+/** Opens (or creates) a chat for a profile slug; no-ops when slug is missing. */
+export async function openChatForProfileSlug(
+  slug: string | undefined,
+  navigate: (path: string) => void,
+) {
+  if (!slug) return
+  try {
+    await getOrCreateChat(slug)
+    void navigate('/social/chat')
+  } catch {
+    void navigate('/social/chat')
+  }
+}
+
 export function ProfilePage() {
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
@@ -57,14 +71,10 @@ export function ProfilePage() {
 
   usePageBottomScroll(onReachBottom, Boolean(hasNextPage))
 
-  const handleSendMessage = async () => {
-    if (!slug) return
-    try {
-      await getOrCreateChat(slug)
-      void navigate('/social/chat')
-    } catch {
-      void navigate('/social/chat')
-    }
+  const handleSendMessage = () => {
+    void openChatForProfileSlug(slug, (path) => {
+      void navigate(path)
+    })
   }
 
   return (
@@ -128,7 +138,7 @@ export function ProfilePage() {
                     </Button>
                   ) : null}
                   {!isOwnProfile ? (
-                    <Button variant="outlined" onClick={() => void handleSendMessage()}>
+                    <Button variant="outlined" onClick={handleSendMessage}>
                       Send Message
                     </Button>
                   ) : null}
