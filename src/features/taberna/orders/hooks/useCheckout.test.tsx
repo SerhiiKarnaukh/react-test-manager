@@ -1,13 +1,22 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
-import { http, HttpResponse } from 'msw'
-import { setupServer } from 'msw/node'
 import type { ReactNode } from 'react'
 import { MemoryRouter } from 'react-router-dom'
-import { expect } from 'vitest'
-import { useCheckout } from '@features/taberna/orders/hooks/useCheckout'
+import { expect, vi } from 'vitest'
+import { useCartStore } from '@features/taberna/cart/store/cart.store'
+import * as ordersApi from '@features/taberna/orders/api/orders'
+import { useCheckout, useReportOrderStatus } from '@features/taberna/orders/hooks/useCheckout'
 
-const ORDERS_BASE = '/taberna-orders/api/v1'
+vi.mock('@features/taberna/orders/api/orders', async () => {
+  const actual = await vi.importActual<typeof import('@features/taberna/orders/api/orders')>(
+    '@features/taberna/orders/api/orders',
+  )
+  return {
+    ...actual,
+    placeStripeOrder: vi.fn(),
+    reportOrderPaymentStatus: vi.fn(),
+  }
+})
 
 const samplePayload = {
   first_name: 'Olivia',
@@ -22,19 +31,6 @@ const samplePayload = {
   order_note: '',
   stripe_token: null,
 }
-
-const server = setupServer(
-  http.post(`*${ORDERS_BASE}/place_order_stripe_charge/`, () => HttpResponse.json({})),
-  http.get('*/taberna-cart/api/cart/', () =>
-    HttpResponse.json({
-      cart_items: [],
-      quantity: 0,
-      total: 0,
-      tax: 0,
-      grand_total: 0,
-    }),
-  ),
-)
 
 function createWrapper() {
   const client = new QueryClient({
@@ -51,15 +47,68 @@ function createWrapper() {
 }
 
 describe('useCheckout', () => {
-  beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
-  afterEach(() => server.resetHandlers())
-  afterAll(() => server.close())
+  const originalLocation = window.location
 
-  it('completes charge order placement', async () => {
+  beforeEach(() => {
+    vi.mocked(ordersApi.placeStripeOrder).mockResolvedValue({})
+    vi.mocked(ordersApi.reportOrderPaymentStatus).mockResolvedValue()
+    useCartStore.setState({ loadCart: vi.fn(async () => undefined) })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: originalLocation,
+    })
+  })
+
+  it('completes charge order placement and reloads cart', async () => {
     const { result } = renderHook(() => useCheckout(), { wrapper: createWrapper() })
 
     result.current.mutate({ payload: samplePayload, type: 'charge' })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(useCartStore.getState().loadCart).toHaveBeenCalledWith({ silent: true })
+  })
+
+  it('redirects to Stripe checkout in session mode', async () => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { href: '' },
+    })
+    vi.mocked(ordersApi.placeStripeOrder).mockResolvedValue({
+      checkout_url: 'https://stripe.test/checkout',
+    })
+    const { result } = renderHook(() => useCheckout(), { wrapper: createWrapper() })
+
+    result.current.mutate({ payload: samplePayload, type: 'session' })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(window.location.href).toBe('https://stripe.test/checkout')
+  })
+
+  it('handles missing checkout URL and API failures', async () => {
+    const { result } = renderHook(() => useCheckout(), { wrapper: createWrapper() })
+
+    result.current.mutate({ payload: samplePayload, type: 'session' })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+
+    vi.mocked(ordersApi.placeStripeOrder).mockRejectedValueOnce(new Error('boom'))
+    result.current.mutate({ payload: samplePayload, type: 'charge' })
+    await waitFor(() => expect(result.current.error).toBeInstanceOf(Error))
+  })
+
+  it('reports order statuses', async () => {
+    const { result } = renderHook(() => useReportOrderStatus(), { wrapper: createWrapper() })
+
+    result.current.mutate({ status: 'success', stripeSessionId: 'sess_1' })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(ordersApi.reportOrderPaymentStatus).toHaveBeenCalledWith('success', 'sess_1')
+
+    vi.mocked(ordersApi.reportOrderPaymentStatus).mockRejectedValueOnce(new Error('bad'))
+    result.current.mutate({ status: 'failed', stripeSessionId: 'sess_2' })
+    await waitFor(() => expect(result.current.error).toBeInstanceOf(Error))
   })
 })

@@ -13,6 +13,7 @@ export function isChargeMode(): boolean {
 
 export function getStripePromise(): Promise<Stripe | null> {
   if (!stripePromise) {
+    /* v8 ignore next -- @preserve */
     stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY)
   }
   return stripePromise

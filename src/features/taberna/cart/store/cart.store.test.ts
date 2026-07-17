@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
-import { expect } from 'vitest'
+import { expect, vi } from 'vitest'
 import { EMPTY_TABERNA_CART } from '@features/taberna/cart/api/cart'
 import { useCartStore } from '@features/taberna/cart/store/cart.store'
 
@@ -56,6 +56,7 @@ describe('taberna cart store', () => {
   beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
   afterEach(() => {
     server.resetHandlers()
+    vi.restoreAllMocks()
     resetCartStore()
   })
   afterAll(() => server.close())
@@ -67,12 +68,45 @@ describe('taberna cart store', () => {
     expect(useCartStore.getState().isLoading).toBe(false)
   })
 
+  it('handles loadCart errors in silent and non-silent modes', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    server.use(
+      http.get(`*${CART_BASE}/cart/`, () => HttpResponse.json({ detail: 'bad' }, { status: 500 })),
+    )
+
+    await useCartStore.getState().loadCart({ silent: true })
+    expect(errorSpy).toHaveBeenCalled()
+
+    await useCartStore.getState().loadCart()
+    expect(useCartStore.getState().isLoading).toBe(false)
+  })
+
   it('persists cart_id from addToCart response', async () => {
     await useCartStore.getState().addToCart(7, 'red', 'M')
 
     expect(useCartStore.getState().cartId).toBe('guest-cart-1')
     expect(localStorage.getItem('cartId')).toBe('guest-cart-1')
     expect(useCartStore.getState().cart.quantity).toBe(2)
+  })
+
+  it('keeps current cartId when addToCart response has no cart_id', async () => {
+    server.use(http.post(`*${CART_BASE}/add-to-cart/:productId/`, () => HttpResponse.json({})))
+    useCartStore.setState({ cartId: 'existing-cart' })
+
+    await useCartStore.getState().addToCart(7, 'red', 'M')
+
+    expect(useCartStore.getState().cartId).toBe('existing-cart')
+  })
+
+  it('surfaces addToCart errors', async () => {
+    server.use(
+      http.post(`*${CART_BASE}/add-to-cart/:productId/`, () =>
+        HttpResponse.json({ detail: 'bad' }, { status: 500 }),
+      ),
+    )
+
+    await expect(useCartStore.getState().addToCart(7, 'red', 'M')).rejects.toThrow()
+    expect(useCartStore.getState().isLoading).toBe(false)
   })
 
   it('decrements a cart line and reloads cart', async () => {
@@ -82,11 +116,31 @@ describe('taberna cart store', () => {
     expect(useCartStore.getState().cart.quantity).toBe(2)
   })
 
+  it('surfaces decrement errors', async () => {
+    server.use(
+      http.delete(`*${CART_BASE}/cart-remove/:productId/:cartItemId/`, () =>
+        HttpResponse.json({ detail: 'bad' }, { status: 500 }),
+      ),
+    )
+
+    await expect(useCartStore.getState().decrementLine(7, 11)).rejects.toThrow()
+  })
+
   it('removes a cart line and reloads cart', async () => {
     useCartStore.setState({ cartId: 'guest-cart-1' })
     await useCartStore.getState().removeLine(7, 11)
 
     expect(useCartStore.getState().cart.quantity).toBe(2)
+  })
+
+  it('surfaces remove errors', async () => {
+    server.use(
+      http.delete(`*${CART_BASE}/cart-item-remove/:productId/:cartItemId/`, () =>
+        HttpResponse.json({ detail: 'bad' }, { status: 500 }),
+      ),
+    )
+
+    await expect(useCartStore.getState().removeLine(7, 11)).rejects.toThrow()
   })
 
   it('clears cartId from storage', () => {

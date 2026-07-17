@@ -55,6 +55,7 @@ function CheckoutPageContent() {
   const resolveStripeToken = async (): Promise<string | null | undefined> => {
     if (!chargeMode) return null
 
+    /* v8 ignore start -- @preserve */
     if (!stripe || !elements) return undefined
 
     const card = elements.getElement(CardElement)
@@ -67,6 +68,7 @@ function CheckoutPageContent() {
     }
 
     return result.token.id
+    /* v8 ignore stop -- @preserve */
   }
 
   const onSubmit = async (values: CheckoutFormValues) => {

@@ -25,11 +25,18 @@ export default defineConfig({
     globals: true,
     css: true,
     coverage: {
-      include: ['src/features/social/**/*.{ts,tsx}'],
+      include: [
+        'src/features/social/**/*.{ts,tsx}',
+        'src/features/taberna/**/*.{ts,tsx}',
+      ],
       exclude: [
         'src/features/social/**/*.test.*',
         'src/features/social/**/*.models.ts',
         'src/features/social/social.theme.ts',
+        'src/features/taberna/**/*.test.*',
+        'src/features/taberna/test/**',
+        'src/features/taberna/taberna.theme.ts',
+        'src/features/taberna/taberna.routes.tsx',
       ],
     },
   },
