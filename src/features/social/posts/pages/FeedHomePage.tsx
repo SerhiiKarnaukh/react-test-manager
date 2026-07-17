@@ -8,6 +8,7 @@ import { PostListSkeleton } from '@features/social/posts/components/PostListSkel
 import { SocialPageLayout } from '@features/social/posts/components/SocialPageLayout'
 import { SocialPostCard } from '@features/social/posts/components/SocialPostCard'
 import { Trends } from '@features/social/posts/components/Trends'
+import { PeopleYouMayKnow } from '@features/social/profiles/components/PeopleYouMayKnow'
 import { usePageBottomScroll } from '@features/social/posts/hooks/usePageBottomScroll'
 import { flattenPostPages, usePostsFeed } from '@features/social/posts/hooks/usePosts'
 
@@ -53,7 +54,12 @@ export function FeedHomePage() {
           ) : null}
         </>
       }
-      sidebar={<Trends />}
+      sidebar={
+        <>
+          {isAuthenticated ? <PeopleYouMayKnow /> : null}
+          <Trends />
+        </>
+      }
     />
   )
 }

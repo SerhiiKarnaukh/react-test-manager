@@ -14,6 +14,7 @@ import { PostListSkeleton } from '@features/social/posts/components/PostListSkel
 import { SocialPageLayout } from '@features/social/posts/components/SocialPageLayout'
 import { SocialPostCard } from '@features/social/posts/components/SocialPostCard'
 import { Trends } from '@features/social/posts/components/Trends'
+import { PeopleYouMayKnow } from '@features/social/profiles/components/PeopleYouMayKnow'
 import { usePageBottomScroll } from '@features/social/posts/hooks/usePageBottomScroll'
 import {
   flattenSearchPosts,
@@ -160,7 +161,12 @@ export function SearchPage() {
           ) : null}
         </>
       }
-      sidebar={<Trends />}
+      sidebar={
+        <>
+          <PeopleYouMayKnow />
+          <Trends />
+        </>
+      }
     />
   )
 }

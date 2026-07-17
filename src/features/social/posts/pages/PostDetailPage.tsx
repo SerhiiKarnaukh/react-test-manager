@@ -11,6 +11,7 @@ import { CommentItem } from '@features/social/posts/components/CommentItem'
 import { SocialPageLayout } from '@features/social/posts/components/SocialPageLayout'
 import { SocialPostCard } from '@features/social/posts/components/SocialPostCard'
 import { Trends } from '@features/social/posts/components/Trends'
+import { PeopleYouMayKnow } from '@features/social/profiles/components/PeopleYouMayKnow'
 import { useAddComment, usePostDetail } from '@features/social/posts/hooks/usePosts'
 
 export function PostDetailPage() {
@@ -89,7 +90,12 @@ export function PostDetailPage() {
           ) : null}
         </>
       }
-      sidebar={<Trends />}
+      sidebar={
+        <>
+          <PeopleYouMayKnow />
+          <Trends />
+        </>
+      }
     />
   )
 }

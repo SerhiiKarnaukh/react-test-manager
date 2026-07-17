@@ -30,6 +30,8 @@ import { useAuthStore } from '@core/auth/auth.store'
 import { SOCIAL_DEFAULT_AVATAR } from '@features/social/profiles/api/profile.models'
 import { useCurrentSocialUser } from '@features/social/profiles/hooks/useProfile'
 import { useProfileStore } from '@features/social/profiles/store/profile.store'
+import { useNotifications } from '@features/social/notifications/hooks/useNotifications'
+import { useNotificationSocket } from '@features/social/notifications/hooks/useNotificationSocket'
 import { socialTheme } from '@features/social/social.theme'
 
 const navButtonSx = {
@@ -44,6 +46,8 @@ export function MainSocialLayout() {
   const initFromStorage = useProfileStore((s) => s.initFromStorage)
   const clearUserState = useProfileStore((s) => s.clearUserState)
   const { data: currentUser } = useCurrentSocialUser()
+  const { unreadCount } = useNotifications()
+  useNotificationSocket(currentUser?.id, isAuthenticated)
   const { mode, setMode } = useColorScheme()
   const theme = useTheme()
   const navigate = useNavigate()
@@ -214,7 +218,7 @@ export function MainSocialLayout() {
                         onClick={closeMenus}
                       >
                         <NotificationsIcon fontSize="small" sx={{ mr: 1 }} />
-                        Notifications (0)
+                        Notifications ({unreadCount})
                       </MenuItem>,
                       currentUser?.slug ? (
                         <MenuItem
@@ -332,7 +336,7 @@ export function MainSocialLayout() {
                       startIcon={<NotificationsIcon />}
                       sx={navButtonSx}
                     >
-                      (0)
+                      ({unreadCount})
                     </Button>
                     {currentUser?.slug ? (
                       <IconButton
