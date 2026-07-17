@@ -1,7 +1,6 @@
 import { api } from '@core/http/axios'
 
-/** Same shape as vue-apps / react-apps collections. Switch path when backend adds react-apps. */
-export const APPS_BASE = '/api/v1/vue-apps'
+export const APPS_BASE = '/api/v1/react-apps'
 
 export type AppItem = {
   id: number | string
@@ -9,6 +8,15 @@ export type AppItem = {
   photo: string
   url: string
   view_url: string
+  github_url?: string
+}
+
+type AppsSearchResponse = AppItem[] | { projects: AppItem[] }
+
+/** Empty search → `{ projects: [] }`; matches → plain array. */
+export function normalizeAppsSearchResponse(data: AppsSearchResponse): AppItem[] {
+  if (Array.isArray(data)) return data
+  return data.projects ?? []
 }
 
 export async function fetchApps(): Promise<AppItem[]> {
@@ -17,6 +25,8 @@ export async function fetchApps(): Promise<AppItem[]> {
 }
 
 export async function searchApps(query: string): Promise<AppItem[]> {
-  const { data } = await api.post<AppItem[]>(`${APPS_BASE}/search/`, { query })
-  return data
+  const { data } = await api.post<AppsSearchResponse>(`${APPS_BASE}/search/`, {
+    query,
+  })
+  return normalizeAppsSearchResponse(data)
 }
