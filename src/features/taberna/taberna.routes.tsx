@@ -1,5 +1,9 @@
 import type { RouteObject } from 'react-router-dom'
 import { MainTabernaLayout } from '@features/taberna/layouts/MainTabernaLayout'
+import { CategoryDetailPage } from '@features/taberna/product/pages/CategoryDetailPage'
+import { ProductDetailPage } from '@features/taberna/product/pages/ProductDetailPage'
+import { ProductHomePage } from '@features/taberna/product/pages/ProductHomePage'
+import { SearchPage } from '@features/taberna/product/pages/SearchPage'
 import { RequireAuth } from '@router/require-auth'
 import { LoginPage } from '@shared/components/LoginPage'
 import { SignupPage } from '@shared/components/SignupPage'
@@ -9,7 +13,7 @@ export const tabernaRoutes: RouteObject[] = [
   {
     element: <MainTabernaLayout />,
     children: [
-      { path: 'taberna', element: <StubPage title="Taberna — Products" /> },
+      { path: 'taberna', element: <ProductHomePage /> },
       {
         path: 'taberna/signup',
         element: <SignupPage app="taberna" loginPath="/taberna/login" />,
@@ -34,13 +38,13 @@ export const tabernaRoutes: RouteObject[] = [
       },
       {
         path: 'taberna-store/category/:category_slug',
-        element: <StubPage title="Taberna — Category" />,
+        element: <CategoryDetailPage />,
       },
       {
         path: 'taberna-store/category/:category_slug/:product_slug',
-        element: <StubPage title="Taberna — Product" />,
+        element: <ProductDetailPage />,
       },
-      { path: 'taberna/search', element: <StubPage title="Taberna — Search" /> },
+      { path: 'taberna/search', element: <SearchPage /> },
       { path: 'taberna/cart', element: <StubPage title="Taberna — Cart" /> },
       {
         path: 'taberna/cart/checkout',
