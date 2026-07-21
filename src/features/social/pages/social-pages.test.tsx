@@ -221,6 +221,185 @@ describe('social chat / notifications / profile pages', () => {
     expect(await screen.findByText('You have no active conversations!')).toBeInTheDocument()
   })
 
+  it('ChatPage renders sender and receiver message bubbles', async () => {
+    server.use(
+      http.get('*/api/social-chat/5/', () =>
+        HttpResponse.json({
+          id: 5,
+          messages: [
+            {
+              id: 1,
+              body: 'From Jane',
+              created_at_formatted: '1m',
+              created_by: peer,
+            },
+            {
+              id: 2,
+              body: 'From John',
+              created_at_formatted: '2m',
+              created_by: { id: 1, first_name: 'John', last_name: 'Doe', avatar_url: null },
+            },
+          ],
+        }),
+      ),
+    )
+    const client = createTestClient()
+    const Page = createSocialRouteWrapper(client, '/social/chat', <ChatPage />)
+    render(<Page />)
+    expect(await screen.findByText('From Jane')).toBeInTheDocument()
+    expect(screen.getByText('From John')).toBeInTheDocument()
+  })
+
+  it('ProfilePage shows loading sidebar before profile loads', async () => {
+    server.use(
+      http.get('*/api/social-posts/profile/jane/', async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50))
+        return HttpResponse.json({
+          results: {
+            posts: [],
+            profile: {
+              id: 2,
+              slug: 'jane',
+              first_name: 'Jane',
+              last_name: 'Roe',
+              full_name: 'Jane Roe',
+              avatar_url: null,
+              friends_count: 3,
+              posts_count: 1,
+            },
+            can_send_friendship_request: true,
+          },
+          next: null,
+        })
+      }),
+    )
+    const client = createTestClient()
+    const Page = createSocialRouteWrapper(
+      client,
+      '/social/profile/:slug',
+      <ProfilePage />,
+      '/social/profile/jane',
+    )
+    render(<Page />)
+    expect(screen.getByRole('progressbar')).toBeInTheDocument()
+    expect(await screen.findByText('Jane Roe')).toBeInTheDocument()
+  })
+
+  it('ProfilePage hides friends link when profile has no slug', async () => {
+    server.use(
+      http.get('*/api/social-posts/profile/jane/', () =>
+        HttpResponse.json({
+          results: {
+            posts: [],
+            profile: {
+              id: 2,
+              slug: '',
+              first_name: 'Jane',
+              last_name: 'Roe',
+              full_name: '',
+              avatar_url: null,
+              friends_count: 3,
+              posts_count: 1,
+            },
+            can_send_friendship_request: false,
+          },
+          next: null,
+        }),
+      ),
+    )
+    const client = createTestClient()
+    const Page = createSocialRouteWrapper(
+      client,
+      '/social/profile/:slug',
+      <ProfilePage />,
+      '/social/profile/jane',
+    )
+    render(<Page />)
+    expect(await screen.findByText('Jane Roe')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /friends/i })).not.toBeInTheDocument()
+  })
+
+  it('ProfilePage builds name from first and last when full_name is missing', async () => {
+    server.use(
+      http.get('*/api/social-posts/profile/jane/', () =>
+        HttpResponse.json({
+          results: {
+            posts: [],
+            profile: {
+              id: 2,
+              slug: 'jane',
+              first_name: 'Jane',
+              last_name: 'Roe',
+              full_name: '',
+              avatar_url: null,
+              friends_count: 3,
+              posts_count: 1,
+            },
+            can_send_friendship_request: false,
+          },
+          next: null,
+        }),
+      ),
+    )
+    const client = createTestClient()
+    const Page = createSocialRouteWrapper(
+      client,
+      '/social/profile/:slug',
+      <ProfilePage />,
+      '/social/profile/jane',
+    )
+    render(<Page />)
+    expect(await screen.findByText('Jane Roe')).toBeInTheDocument()
+  })
+
+  it('ProfilePage shows empty posts state for loaded profile', async () => {
+    server.use(
+      http.get('*/api/social-posts/profile/jane/', () =>
+        HttpResponse.json({
+          results: {
+            posts: [],
+            profile: {
+              id: 2,
+              slug: 'jane',
+              first_name: 'Jane',
+              last_name: 'Roe',
+              full_name: 'Jane Roe',
+              avatar_url: null,
+              friends_count: 3,
+              posts_count: 0,
+            },
+            can_send_friendship_request: false,
+          },
+          next: null,
+        }),
+      ),
+    )
+    const client = createTestClient()
+    const Page = createSocialRouteWrapper(
+      client,
+      '/social/profile/:slug',
+      <ProfilePage />,
+      '/social/profile/jane',
+    )
+    render(<Page />)
+    expect(await screen.findByText('No posts yet.')).toBeInTheDocument()
+  })
+
+  it('ProfilePage hides suggestions for guests', async () => {
+    useAuthStore.setState({ access: null, refresh: null, activeApp: 'social' })
+    useProfileStore.setState({ user: null })
+    const client = createTestClient()
+    const Page = createSocialRouteWrapper(
+      client,
+      '/social/profile/:slug',
+      <ProfilePage />,
+      '/social/profile/jane',
+    )
+    render(<Page />)
+    expect(await screen.findByText('Jane Roe')).toBeInTheDocument()
+    expect(screen.queryByText('People you may know')).not.toBeInTheDocument()
+  })
+
   it('NotificationsPage marks notification as read', async () => {
     const user = userEvent.setup()
     const client = createTestClient()
@@ -414,6 +593,219 @@ describe('social chat / notifications / profile pages', () => {
     await user.click(screen.getByRole('button', { name: 'Accept' }))
   })
 
+  it('FriendsPage shows loading sidebar before data arrives', async () => {
+    server.use(
+      http.get('*/api/social-profiles/friends/john/', async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50))
+        return HttpResponse.json({
+          requests: [],
+          friends: [],
+          user: {
+            id: 1,
+            slug: 'john',
+            first_name: 'John',
+            last_name: 'Doe',
+            avatar_url: null,
+            friends_count: 0,
+            posts_count: 0,
+          },
+        })
+      }),
+    )
+    const client = createTestClient()
+    const Page = createSocialRouteWrapper(
+      client,
+      '/social/profile/:slug/friends',
+      <FriendsPage />,
+      '/social/profile/john/friends',
+    )
+    render(<Page />)
+    expect(screen.getByRole('progressbar')).toBeInTheDocument()
+    expect(await screen.findByText('John Doe')).toBeInTheDocument()
+  })
+
+  it('ProfilePage renders without sidebar when profile is missing', async () => {
+    server.use(
+      http.get('*/api/social-posts/profile/ghost/', () =>
+        HttpResponse.json({
+          results: { posts: [], profile: null, can_send_friendship_request: false },
+          next: null,
+        }),
+      ),
+    )
+    const client = createTestClient()
+    const Page = createSocialRouteWrapper(
+      client,
+      '/social/profile/:slug',
+      <ProfilePage />,
+      '/social/profile/ghost',
+    )
+    render(<Page />)
+    await waitFor(() => expect(screen.queryByRole('progressbar')).not.toBeInTheDocument())
+    expect(screen.queryByText('Add as Friend')).not.toBeInTheDocument()
+  })
+
+  it('ProfilePage shows progress while fetching next page of posts', async () => {
+    server.use(
+      http.get('*/api/social-posts/profile/john/', ({ request }) => {
+        const url = new URL(request.url)
+        if (url.searchParams.get('page') === '2') {
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              resolve(
+                HttpResponse.json({
+                  results: {
+                    posts: [{ ...samplePost, id: 11, body: 'Profile page 2' }],
+                    profile: {
+                      id: 1,
+                      slug: 'john',
+                      first_name: 'John',
+                      last_name: 'Doe',
+                      full_name: 'John Doe',
+                      avatar_url: null,
+                      friends_count: 1,
+                      posts_count: 2,
+                    },
+                    can_send_friendship_request: false,
+                  },
+                  next: null,
+                }),
+              )
+            }, 100)
+          })
+        }
+        return HttpResponse.json({
+          results: {
+            posts: [{ ...samplePost, body: 'Own post' }],
+            profile: {
+              id: 1,
+              slug: 'john',
+              first_name: 'John',
+              last_name: 'Doe',
+              full_name: 'John Doe',
+              avatar_url: null,
+              friends_count: 1,
+              posts_count: 2,
+            },
+            can_send_friendship_request: false,
+          },
+          next: `${url.origin}/api/social-posts/profile/john/?page=2`,
+        })
+      }),
+    )
+    const client = createTestClient()
+    const Page = createSocialRouteWrapper(
+      client,
+      '/social/profile/:slug',
+      <ProfilePage />,
+      '/social/profile/john',
+    )
+    render(<Page />)
+    expect(await screen.findByText('Own post')).toBeInTheDocument()
+
+    Object.defineProperty(document.body, 'offsetHeight', {
+      configurable: true,
+      value: 200,
+    })
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 100 })
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 120 })
+    window.dispatchEvent(new Event('scroll'))
+    expect(await screen.findByRole('progressbar')).toBeInTheDocument()
+    expect(await screen.findByText('Profile page 2')).toBeInTheDocument()
+  })
+
+  it('ProfilePage ignores scroll while next page is loading', async () => {
+    let resolvePage2: (value: Response) => void
+    server.use(
+      http.get('*/api/social-posts/profile/john/', ({ request }) => {
+        const url = new URL(request.url)
+        if (url.searchParams.get('page') === '2') {
+          return new Promise((resolve) => {
+            resolvePage2 = resolve
+          })
+        }
+        return HttpResponse.json({
+          results: {
+            posts: [{ ...samplePost, body: 'Own post' }],
+            profile: {
+              id: 1,
+              slug: 'john',
+              first_name: 'John',
+              last_name: 'Doe',
+              full_name: 'John Doe',
+              avatar_url: null,
+              friends_count: 1,
+              posts_count: 2,
+            },
+            can_send_friendship_request: false,
+          },
+          next: `${url.origin}/api/social-posts/profile/john/?page=2`,
+        })
+      }),
+    )
+    const client = createTestClient()
+    const Page = createSocialRouteWrapper(
+      client,
+      '/social/profile/:slug',
+      <ProfilePage />,
+      '/social/profile/john',
+    )
+    render(<Page />)
+    expect(await screen.findByText('Own post')).toBeInTheDocument()
+
+    Object.defineProperty(document.body, 'offsetHeight', {
+      configurable: true,
+      value: 200,
+    })
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 100 })
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 120 })
+    window.dispatchEvent(new Event('scroll'))
+    expect(await screen.findByRole('progressbar')).toBeInTheDocument()
+    window.dispatchEvent(new Event('scroll'))
+    resolvePage2!(
+      HttpResponse.json({
+        results: {
+          posts: [{ ...samplePost, id: 11, body: 'Profile page 2' }],
+          profile: {
+            id: 1,
+            slug: 'john',
+            first_name: 'John',
+            last_name: 'Doe',
+            full_name: 'John Doe',
+            avatar_url: null,
+            friends_count: 1,
+            posts_count: 2,
+          },
+          can_send_friendship_request: false,
+        },
+        next: null,
+      }),
+    )
+    expect(await screen.findByText('Profile page 2')).toBeInTheDocument()
+  })
+
+  it('FriendsPage renders without sidebar card when user is missing', async () => {
+    server.use(
+      http.get('*/api/social-profiles/friends/john/', () =>
+        HttpResponse.json({
+          requests: [],
+          friends: [],
+          user: null,
+        }),
+      ),
+    )
+    const client = createTestClient()
+    const Page = createSocialRouteWrapper(
+      client,
+      '/social/profile/:slug/friends',
+      <FriendsPage />,
+      '/social/profile/john/friends',
+    )
+    render(<Page />)
+    await waitFor(() => expect(screen.queryByRole('progressbar')).not.toBeInTheDocument())
+    expect(screen.queryByText('Friendship requests')).not.toBeInTheDocument()
+  })
+
   it('FriendsPage rejects friendship requests', async () => {
     server.use(
       http.post('*/api/social-profiles/friends/jane/rejected/', () => HttpResponse.json({})),
@@ -429,6 +821,70 @@ describe('social chat / notifications / profile pages', () => {
     render(<Page />)
     expect(await screen.findByRole('button', { name: 'Reject' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Reject' }))
+  })
+
+  it('FriendsPage shows empty state without requests or friends', async () => {
+    server.use(
+      http.get('*/api/social-profiles/friends/john/', () =>
+        HttpResponse.json({
+          requests: [],
+          friends: [],
+          user: {
+            id: 1,
+            slug: 'john',
+            first_name: 'John',
+            last_name: 'Doe',
+            avatar_url: null,
+            friends_count: 0,
+            posts_count: 0,
+          },
+        }),
+      ),
+    )
+    const client = createTestClient()
+    const Page = createSocialRouteWrapper(
+      client,
+      '/social/profile/:slug/friends',
+      <FriendsPage />,
+      '/social/profile/john/friends',
+    )
+    render(<Page />)
+    expect(await screen.findByText('John Doe')).toBeInTheDocument()
+    expect(screen.queryByText('Friendship requests')).not.toBeInTheDocument()
+    expect(screen.queryByText('Friends')).not.toBeInTheDocument()
+  })
+
+  it('EditProfilePage keeps defaults while user is loading', async () => {
+    useProfileStore.setState({ user: null })
+    server.use(
+      http.get('*/api/social-profiles/me/', async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50))
+        return HttpResponse.json(me)
+      }),
+    )
+    const client = createTestClient()
+    const Edit = createSocialRouteWrapper(client, '/social/profile/edit', <EditProfilePage />)
+    render(<Edit />)
+    expect(screen.getByLabelText('Username')).toHaveValue('')
+    expect(await screen.findByDisplayValue('john')).toBeInTheDocument()
+  })
+
+  it('EditProfilePage clears avatar when file input is emptied', async () => {
+    const client = createTestClient()
+    const Edit = createSocialRouteWrapper(client, '/social/profile/edit', <EditProfilePage />)
+    const { container } = render(<Edit />)
+    expect(await screen.findByLabelText('Username')).toHaveValue('john')
+    const input = container.querySelector('#avatarUpload') as HTMLInputElement
+    fireEvent.change(input, { target: { files: null } })
+  })
+
+  it('EditProfilePage saves without avatar upload', async () => {
+    const user = userEvent.setup()
+    const client = createTestClient()
+    const Edit = createSocialRouteWrapper(client, '/social/profile/edit', <EditProfilePage />)
+    render(<Edit />)
+    expect(await screen.findByLabelText('Username')).toHaveValue('john')
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
   })
 
   it('EditProfilePage saves changes and can pick avatar', async () => {

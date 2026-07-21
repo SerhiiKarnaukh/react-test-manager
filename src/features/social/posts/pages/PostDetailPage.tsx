@@ -12,13 +12,13 @@ import { SocialPageLayout } from '@features/social/posts/components/SocialPageLa
 import { SocialPostCard } from '@features/social/posts/components/SocialPostCard'
 import { Trends } from '@features/social/posts/components/Trends'
 import { PeopleYouMayKnow } from '@features/social/profiles/components/PeopleYouMayKnow'
-import { useAddComment, usePostDetail } from '@features/social/posts/hooks/usePosts'
+import { useAddComment, resolvePostId, usePostDetail } from '@features/social/posts/hooks/usePosts'
 
 export function PostDetailPage() {
   const { id } = useParams<{ id: string }>()
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated())
   const { data, isPending } = usePostDetail(id)
-  const addComment = useAddComment(id ?? '')
+  const addComment = useAddComment(resolvePostId(id))
   const [commentBody, setCommentBody] = useState('')
   const post = data?.post
 

@@ -221,6 +221,78 @@ describe('social chat & notification hooks', () => {
     expect(client.getQueryData(notificationsKey)).toEqual([])
   })
 
+  it('useMarkNotificationRead navigates when target exists', async () => {
+    const client = createClient()
+    const wrapper = createWrapper(client)
+    const list = renderHook(() => useNotifications(), { wrapper })
+    await waitFor(() => expect(list.result.current.isSuccess).toBe(true))
+
+    const mark = renderHook(() => useMarkNotificationRead(), { wrapper })
+    await act(async () => {
+      await mark.result.current.mutateAsync({
+        id: 1,
+        body: 'Like',
+        type_of_notification: 'post_like',
+        post_id: 10,
+      })
+    })
+
+    expect(client.getQueryData(notificationsKey)).toEqual([])
+  })
+
+  it('useMarkNotificationRead skips navigation when target is missing', async () => {
+    useProfileStore.setState({ user: null })
+    const client = createClient()
+    const wrapper = createWrapper(client)
+    const list = renderHook(() => useNotifications(), { wrapper })
+    await waitFor(() => expect(list.result.current.isSuccess).toBe(true))
+
+    const mark = renderHook(() => useMarkNotificationRead(), { wrapper })
+    await act(async () => {
+      await mark.result.current.mutateAsync({
+        id: 1,
+        body: 'Friend request',
+        type_of_notification: 'friendship_request',
+      })
+    })
+
+    expect(client.getQueryData(notificationsKey)).toEqual([])
+  })
+
+  it('useMarkNotificationRead skips navigation for post_like without post id', async () => {
+    useProfileStore.setState({ user: null })
+    const client = createClient()
+    const wrapper = createWrapper(client)
+    const list = renderHook(() => useNotifications(), { wrapper })
+    await waitFor(() => expect(list.result.current.isSuccess).toBe(true))
+
+    const mark = renderHook(() => useMarkNotificationRead(), { wrapper })
+    await act(async () => {
+      await mark.result.current.mutateAsync({
+        id: 1,
+        body: 'Like',
+        type_of_notification: 'post_like',
+      })
+    })
+
+    expect(client.getQueryData(notificationsKey)).toEqual([])
+  })
+
+  it('useMarkNotificationRead tolerates missing notifications cache', async () => {
+    const client = createClient()
+    const wrapper = createWrapper(client)
+    const mark = renderHook(() => useMarkNotificationRead(), { wrapper })
+    await act(async () => {
+      await mark.result.current.mutateAsync({
+        id: 1,
+        body: 'Like',
+        type_of_notification: 'post_like',
+        post_id: 10,
+      })
+    })
+    expect(client.getQueryData(notificationsKey)).toEqual([])
+  })
+
   it('useNotifications and mark-read error paths enqueue alerts', async () => {
     server.use(
       http.get(`*${notifBase}/`, () => HttpResponse.json({ detail: 'x' }, { status: 500 })),

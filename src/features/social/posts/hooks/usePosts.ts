@@ -135,7 +135,7 @@ export function usePostsFeed() {
 export function useTrendPosts(trendId: string | undefined) {
   const query = useInfiniteQuery({
     queryKey: trendPostsKey(trendId ?? ''),
-    queryFn: ({ pageParam }) => fetchTrendPosts(trendId ?? '', pageParam),
+    queryFn: ({ pageParam }) => fetchTrendPosts(trendId!, pageParam),
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.next ?? undefined,
     enabled: Boolean(trendId),
@@ -167,7 +167,7 @@ export function usePostSearch(queryText: string) {
 export function usePostDetail(postId: string | undefined) {
   const query = useQuery({
     queryKey: postDetailKey(postId ?? ''),
-    queryFn: () => fetchPost(postId ?? ''),
+    queryFn: () => fetchPost(postId!),
     enabled: Boolean(postId),
   })
 
@@ -347,4 +347,8 @@ export function flattenSearchPosts(
 export function latestSearchProfiles(data: InfiniteData<SearchPostsPayload> | undefined) {
   if (!data?.pages.length) return []
   return data.pages[data.pages.length - 1]?.results.profiles ?? []
+}
+
+export function resolvePostId(postId: string | undefined) {
+  return postId ?? ''
 }

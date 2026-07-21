@@ -237,4 +237,62 @@ describe('social websocket hooks', () => {
     })
     expect(sockets).toHaveLength(0)
   })
+
+  it('useNotificationSocket does not connect without user id', () => {
+    const client = new QueryClient()
+    renderHook(() => useNotificationSocket(undefined, true), {
+      wrapper: createWrapper(client),
+    })
+    expect(sockets).toHaveLength(0)
+  })
+
+  it('useChatSocket closes socket in CONNECTING state on unmount', () => {
+    const client = new QueryClient()
+    const { unmount } = renderHook(() => useChatSocket(5, 42), {
+      wrapper: createWrapper(client),
+    })
+    sockets[0]!.readyState = MockWebSocket.CONNECTING
+    unmount()
+    expect(sockets[0]?.close).toHaveBeenCalled()
+  })
+
+  it('useNotificationSocket closes socket in CONNECTING state on unmount', () => {
+    const client = new QueryClient()
+    const { unmount } = renderHook(() => useNotificationSocket(7, true), {
+      wrapper: createWrapper(client),
+    })
+    sockets[0]!.readyState = MockWebSocket.CONNECTING
+    unmount()
+    expect(sockets[0]?.close).toHaveBeenCalled()
+  })
+
+  it('useChatSocket skips close when socket is CLOSING on unmount', () => {
+    const client = new QueryClient()
+    const { unmount } = renderHook(() => useChatSocket(5, 42), {
+      wrapper: createWrapper(client),
+    })
+    sockets[0]!.readyState = MockWebSocket.CLOSING
+    unmount()
+    expect(sockets[0]?.close).not.toHaveBeenCalled()
+  })
+
+  it('useNotificationSocket skips close when socket is CLOSING on unmount', () => {
+    const client = new QueryClient()
+    const { unmount } = renderHook(() => useNotificationSocket(7, true), {
+      wrapper: createWrapper(client),
+    })
+    sockets[0]!.readyState = MockWebSocket.CLOSING
+    unmount()
+    expect(sockets[0]?.close).not.toHaveBeenCalled()
+  })
+
+  it('useChatSocket skips close when socket is already closed', () => {
+    const client = new QueryClient()
+    const { unmount } = renderHook(() => useChatSocket(5, 42), {
+      wrapper: createWrapper(client),
+    })
+    sockets[0]!.readyState = MockWebSocket.CLOSED
+    unmount()
+    expect(sockets[0]?.close).not.toHaveBeenCalled()
+  })
 })

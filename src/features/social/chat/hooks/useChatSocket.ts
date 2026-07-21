@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { buildSocialWebSocketUrl } from '@features/social/data-access/social-websocket.utils'
+import { buildSocialWebSocketUrl, closeSocialWebSocket } from '@features/social/data-access/social-websocket.utils'
 import type { SocialChatMessage } from '@features/social/chat/api/chat'
 import { conversationKey } from '@features/social/chat/hooks/useChat'
 
@@ -52,12 +52,7 @@ export function useChatSocket(conversationId: number | null, userId: number | un
     }
 
     return () => {
-      if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
-        socket.close()
-      }
-      if (socketRef.current === socket) {
-        socketRef.current = null
-      }
+      closeSocialWebSocket(socket, socketRef)
     }
   }, [conversationId, userId])
 }

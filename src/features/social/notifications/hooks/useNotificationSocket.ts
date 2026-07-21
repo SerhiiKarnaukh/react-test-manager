@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { buildSocialWebSocketUrl } from '@features/social/data-access/social-websocket.utils'
+import { buildSocialWebSocketUrl, closeSocialWebSocket } from '@features/social/data-access/social-websocket.utils'
 import { notificationsKey } from '@features/social/notifications/hooks/useNotifications'
 
 type NotificationSocketPayload = {
@@ -37,12 +37,7 @@ export function useNotificationSocket(userId: number | undefined, enabled: boole
     }
 
     return () => {
-      if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
-        socket.close()
-      }
-      if (socketRef.current === socket) {
-        socketRef.current = null
-      }
+      closeSocialWebSocket(socket, socketRef)
     }
   }, [enabled, userId])
 }

@@ -1,5 +1,9 @@
 import { getOrCreateChat } from '@features/social/chat/api/chat'
 
+export function resolveProfileSlug(slug: string | undefined) {
+  return slug ?? ''
+}
+
 /** Opens (or creates) a chat for a profile slug; no-ops when slug is missing. */
 export async function openChatForProfileSlug(
   slug: string | undefined,

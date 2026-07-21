@@ -14,6 +14,7 @@ import {
   flattenPostPages,
   flattenSearchPosts,
   latestSearchProfiles,
+  resolvePostId,
   useAddComment,
   useCreatePost,
   useDeletePost,
@@ -493,5 +494,85 @@ describe('social posts query hooks', () => {
       client.getQueryData<{ post: SocialPostDetail }>(['social', 'posts', 'detail', '10'])?.post
         .id,
     ).toBe(10)
+  })
+
+  it('disabled trend and detail hooks do not fetch without ids', () => {
+    const client = createTestClient()
+    const wrapper = createWrapper(client)
+    const trend = renderHook(() => useTrendPosts(undefined), { wrapper })
+    const detail = renderHook(() => usePostDetail(undefined), { wrapper })
+    expect(trend.result.current.fetchStatus).toBe('idle')
+    expect(detail.result.current.fetchStatus).toBe('idle')
+  })
+
+  it('useLikePost only bumps the matching post id', async () => {
+    server.use(
+      http.post(`*${baseUrl}/11/like/`, () => HttpResponse.json({ message: 'like created' })),
+    )
+    const client = createTestClient()
+    const wrapper = createWrapper(client)
+    client.setQueryData<InfiniteData<PaginatedPostsPayload>>(feedKey, {
+      pages: [
+        {
+          results: {
+            posts: [
+              samplePost,
+              { ...samplePost, id: 11, likes_count: 1 },
+            ],
+          },
+          next: null,
+        },
+      ],
+      pageParams: [null],
+    })
+    const like = renderHook(() => useLikePost(), { wrapper })
+    await act(async () => {
+      await like.result.current.mutateAsync(11)
+    })
+    expect(flattenPostPages(client.getQueryData(feedKey)).find((p) => p.id === 10)?.likes_count).toBe(3)
+    expect(flattenPostPages(client.getQueryData(feedKey)).find((p) => p.id === 11)?.likes_count).toBe(2)
+  })
+
+  it('useDeletePost keeps unrelated detail cache entries', async () => {
+    const client = createTestClient()
+    const wrapper = createWrapper(client)
+    client.setQueryData<{ post: SocialPostDetail }>(['social', 'posts', 'detail', '99'], {
+      post: { ...samplePost, id: 99, comments: [] },
+    })
+    const del = renderHook(() => useDeletePost(), { wrapper })
+    await act(async () => {
+      await del.result.current.mutateAsync(10)
+    })
+    expect(client.getQueryData(['social', 'posts', 'detail', '99'])).toBeDefined()
+  })
+
+  it('useLikePost keeps detail cache when post id does not match', async () => {
+    const client = createTestClient()
+    const wrapper = createWrapper(client)
+    client.setQueryData<{ post: SocialPostDetail }>(['social', 'posts', 'detail', '99'], {
+      post: { ...samplePost, id: 99, comments: [], likes_count: 5 },
+    })
+    const like = renderHook(() => useLikePost(), { wrapper })
+    await act(async () => {
+      await like.result.current.mutateAsync(10)
+    })
+    expect(
+      (client.getQueryData(['social', 'posts', 'detail', '99']) as { post: SocialPostDetail }).post
+        .likes_count,
+    ).toBe(5)
+  })
+
+  it('resolvePostId falls back to empty string', () => {
+    expect(resolvePostId('10')).toBe('10')
+    expect(resolvePostId(undefined)).toBe('')
+  })
+
+  it('latestSearchProfiles returns empty list when profiles are missing', () => {
+    expect(
+      latestSearchProfiles({
+        pages: [{ results: { posts: [samplePost], profiles: [] }, next: null } as SearchPostsPayload],
+        pageParams: [null],
+      } as InfiniteData<SearchPostsPayload>),
+    ).toEqual([])
   })
 })

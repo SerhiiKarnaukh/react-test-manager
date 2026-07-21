@@ -17,7 +17,7 @@ import { usePageBottomScroll } from '@features/social/posts/hooks/usePageBottomS
 import { SOCIAL_DEFAULT_AVATAR } from '@features/social/profiles/api/profile.models'
 import { PeopleYouMayKnow } from '@features/social/profiles/components/PeopleYouMayKnow'
 import { ProfilePageLayout } from '@features/social/profiles/components/ProfilePageLayout'
-import { openChatForProfileSlug } from '@features/social/profiles/profile-chat.utils'
+import { openChatForProfileSlug, resolveProfileSlug } from '@features/social/profiles/profile-chat.utils'
 import {
   canSendFriendshipRequestFromPages,
   flattenProfilePostPages,
@@ -33,7 +33,7 @@ export function ProfilePage() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated())
   const { data: currentUser } = useCurrentSocialUser()
   const { data, isPending, isFetchingNextPage, hasNextPage, fetchNextPage } = useProfilePosts(slug)
-  const sendFriendRequest = useSendFriendRequest(slug ?? '')
+  const sendFriendRequest = useSendFriendRequest(resolveProfileSlug(slug))
 
   const posts = flattenProfilePostPages(data)
   const profile = profileFromPages(data)

@@ -215,6 +215,24 @@ describe('social components', () => {
     await user.click(screen.getByRole('button', { name: '3' }))
   })
 
+  it('SocialPostCard hides actions for guests', () => {
+    localStorage.clear()
+    useAuthStore.setState({ access: null, refresh: null, activeApp: 'social' })
+    const client = createTestClient()
+    render(<SocialPostCard post={samplePost} />, { wrapper: createSocialWrapper(client) })
+    expect(screen.queryByLabelText('Post actions')).not.toBeInTheDocument()
+  })
+
+  it('SocialPostCard renders text-only posts without attachment spacing', () => {
+    const client = createTestClient()
+    render(
+      <SocialPostCard post={{ ...samplePost, body: 'Text only', attachments: [] }} />,
+      { wrapper: createSocialWrapper(client) },
+    )
+    expect(screen.getByText('Text only')).toBeInTheDocument()
+    expect(screen.queryByAltText('Post attachment')).not.toBeInTheDocument()
+  })
+
   it('CreatePostForm submits body', async () => {
     const user = userEvent.setup()
     const client = createTestClient()
@@ -271,6 +289,22 @@ describe('social components', () => {
     expect(formData.get('images[0]')).toBeInstanceOf(File)
     await waitFor(() => expect(field).toHaveValue(''))
     expect(screen.queryByAltText('Selected attachment')).not.toBeInTheDocument()
+  })
+
+  it('SocialPostCard renders body with attachments spacing', () => {
+    const client = createTestClient()
+    render(
+      <SocialPostCard
+        post={{
+          ...samplePost,
+          body: 'With attachment',
+          attachments: [{ id: 1, image_url: 'https://example.com/a.png' }],
+        }}
+      />,
+      { wrapper: createSocialWrapper(client) },
+    )
+    expect(screen.getByText('With attachment')).toBeInTheDocument()
+    expect(screen.getByAltText('Post attachment')).toBeInTheDocument()
   })
 
   it('CreatePostForm Attach image opens file picker', async () => {

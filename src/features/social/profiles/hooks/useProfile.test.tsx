@@ -452,4 +452,114 @@ describe('social profile hooks', () => {
       await send.result.current.mutateAsync()
     })
   })
+
+  it('useCurrentSocialUser keeps session on non-404 me errors', async () => {
+    server.use(
+      http.get(`*${profilesBase}/me/`, () =>
+        HttpResponse.json({ detail: 'fail' }, { status: 500 }),
+      ),
+    )
+    const client = createClient()
+    const { result } = renderHook(() => useCurrentSocialUser(), {
+      wrapper: createWrapper(client),
+    })
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect(useAuthStore.getState().access).toBe('token')
+    expect(useAlertStore.getState().queue).toHaveLength(0)
+  })
+
+  it('useCurrentSocialUser uses fallback alert on 404 without message', async () => {
+    server.use(http.get(`*${profilesBase}/me/`, () => HttpResponse.json({}, { status: 404 })))
+    const client = createClient()
+    renderHook(() => useCurrentSocialUser(), { wrapper: createWrapper(client) })
+    await waitFor(() => expect(useAuthStore.getState().access).toBeNull())
+    expect(useAlertStore.getState().queue[0]?.message).toBe('User not found')
+  })
+
+  it('profile hooks stay disabled without slug param', async () => {
+    const client = createClient()
+    const wrapper = createWrapper(client)
+    const posts = renderHook(() => useProfilePosts(undefined), { wrapper })
+    const friends = renderHook(() => useFriendsData(undefined), { wrapper })
+    expect(posts.result.current.fetchStatus).toBe('idle')
+    expect(friends.result.current.fetchStatus).toBe('idle')
+  })
+
+  it('useHandleFriendRequest succeeds without current user slug', async () => {
+    const client = createClient()
+    const handle = renderHook(() => useHandleFriendRequest(undefined), {
+      wrapper: createWrapper(client),
+    })
+    await act(async () => {
+      await handle.result.current.mutateAsync({ slug: 'jane', status: 'accepted' })
+    })
+  })
+
+  it('useUpdateProfile keeps existing user fields when form data is empty', async () => {
+    const client = createClient()
+    const wrapper = createWrapper(client)
+    const update = renderHook(() => useUpdateProfile(), { wrapper })
+    await act(async () => {
+      await update.result.current.mutateAsync(new FormData())
+    })
+    expect(useProfileStore.getState().user?.username).toBe('john')
+  })
+
+  it('useChangePassword succeeds without navigating when slug is missing', async () => {
+    useProfileStore.setState({ user: null })
+    const client = createClient()
+    const change = renderHook(() => useChangePassword(), { wrapper: createWrapper(client) })
+    await act(async () => {
+      await change.result.current.mutateAsync({
+        old_password: 'oldpass12',
+        new_password1: 'newpass12',
+        new_password2: 'newpass12',
+      })
+    })
+    expect(useAlertStore.getState().queue[0]?.message).toBe('The information was saved')
+  })
+
+  it('useChangePassword parses structured json error messages', async () => {
+    server.use(
+      http.post(`*${profilesBase}/editpassword/`, () =>
+        HttpResponse.json({
+          message: JSON.stringify({
+            old_password: [{ message: 'Wrong password' }],
+          }),
+        }),
+      ),
+    )
+    const client = createClient()
+    const change = renderHook(() => useChangePassword(), { wrapper: createWrapper(client) })
+    await act(async () => {
+      await change.result.current.mutateAsync({
+        old_password: 'x',
+        new_password1: 'newpass12',
+        new_password2: 'newpass12',
+      })
+    })
+    expect(useAlertStore.getState().queue[0]?.message).toContain('Wrong password')
+  })
+
+  it('useChangePassword falls back to raw message when json has no messages', async () => {
+    server.use(
+      http.post(`*${profilesBase}/editpassword/`, () =>
+        HttpResponse.json({
+          message: JSON.stringify({
+            old_password: [],
+          }),
+        }),
+      ),
+    )
+    const client = createClient()
+    const change = renderHook(() => useChangePassword(), { wrapper: createWrapper(client) })
+    await act(async () => {
+      await change.result.current.mutateAsync({
+        old_password: 'x',
+        new_password1: 'newpass12',
+        new_password2: 'newpass12',
+      })
+    })
+    expect(useAlertStore.getState().queue[0]?.message).toContain('old_password')
+  })
 })

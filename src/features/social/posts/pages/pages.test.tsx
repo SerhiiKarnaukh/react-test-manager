@@ -136,6 +136,65 @@ describe('social post pages', () => {
     expect(await screen.findByText('Second')).toBeInTheDocument()
   })
 
+  it('FeedHomePage hides create form and suggestions for guests', async () => {
+    useAuthStore.setState({ access: null, refresh: null, activeApp: 'social' })
+    useProfileStore.setState({ user: null })
+    const client = createTestClient()
+    const Page = createSocialRouteWrapper(client, '/social/home', <FeedHomePage />)
+    render(<Page />)
+    expect(await screen.findByText('Hello feed')).toBeInTheDocument()
+    expect(screen.queryByLabelText('What are you thinking about?')).not.toBeInTheDocument()
+    expect(screen.queryByText('People you may know')).not.toBeInTheDocument()
+  })
+
+  it('PostDetailPage hides comment form for guests', async () => {
+    useAuthStore.setState({ access: null, refresh: null, activeApp: 'social' })
+    const client = createTestClient()
+    const Page = createSocialRouteWrapper(
+      client,
+      '/social/:id',
+      <PostDetailPage />,
+      '/social/10',
+    )
+    render(<Page />)
+    expect(await screen.findByText('First comment')).toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: /What do you think/i })).not.toBeInTheDocument()
+  })
+
+  it('FeedHomePage ignores scroll when there is no next page', async () => {
+    const client = createTestClient()
+    const Page = createSocialRouteWrapper(client, '/social/home', <FeedHomePage />)
+    render(<Page />)
+    expect(await screen.findByText('Hello feed')).toBeInTheDocument()
+
+    Object.defineProperty(document.body, 'offsetHeight', { configurable: true, value: 200 })
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 100 })
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 120 })
+    window.dispatchEvent(new Event('scroll'))
+    expect(screen.queryByText('Second page')).not.toBeInTheDocument()
+  })
+
+  it('TrendPage shows empty state for trends without posts', async () => {
+    server.use(
+      http.get('*/api/social-posts/', ({ request }) => {
+        const url = new URL(request.url)
+        if (url.searchParams.get('trend') === 'react') {
+          return HttpResponse.json({ results: { posts: [] }, next: null })
+        }
+        return HttpResponse.json({ results: { posts: [samplePost] }, next: null })
+      }),
+    )
+    const client = createTestClient()
+    const Page = createSocialRouteWrapper(
+      client,
+      '/social/trends/:id',
+      <TrendPage />,
+      '/social/trends/react',
+    )
+    render(<Page />)
+    expect(await screen.findByText('No posts for this trend yet.')).toBeInTheDocument()
+  })
+
   it('SearchPage searches profiles and posts', async () => {
     const user = userEvent.setup()
     const client = createTestClient()
@@ -257,15 +316,271 @@ describe('social post pages', () => {
     expect(await screen.findByText('Paged result')).toBeInTheDocument()
   })
 
-  it('TrendPage fetches next page on scroll', async () => {
+  it('PostDetailPage shows loading spinner before post loads', async () => {
+    server.use(
+      http.get('*/api/social-posts/10/', async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50))
+        return HttpResponse.json({
+          post: {
+            ...samplePost,
+            comments: [],
+          },
+        })
+      }),
+    )
+    const client = createTestClient()
+    const Page = createSocialRouteWrapper(
+      client,
+      '/social/:id',
+      <PostDetailPage />,
+      '/social/10',
+    )
+    render(<Page />)
+    expect(screen.getByRole('progressbar')).toBeInTheDocument()
+    expect(await screen.findByText('Hello feed')).toBeInTheDocument()
+  })
+
+  it('FeedHomePage shows progress while fetching next page', async () => {
+    server.use(
+      http.get('*/api/social-posts/', ({ request }) => {
+        const url = new URL(request.url)
+        if (url.searchParams.get('page') === '2') {
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              resolve(
+                HttpResponse.json({
+                  results: { posts: [{ ...samplePost, id: 11, body: 'Second page' }] },
+                  next: null,
+                }),
+              )
+            }, 100)
+          })
+        }
+        return HttpResponse.json({
+          results: { posts: [samplePost] },
+          next: `${url.origin}/api/social-posts/?page=2`,
+        })
+      }),
+    )
+    const client = createTestClient()
+    const Page = createSocialRouteWrapper(client, '/social/home', <FeedHomePage />)
+    render(<Page />)
+    expect(await screen.findByText('Hello feed')).toBeInTheDocument()
+
+    Object.defineProperty(document.body, 'offsetHeight', {
+      configurable: true,
+      value: 200,
+    })
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 100 })
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 120 })
+    window.dispatchEvent(new Event('scroll'))
+    expect(await screen.findByRole('progressbar')).toBeInTheDocument()
+    expect(await screen.findByText('Second page')).toBeInTheDocument()
+  })
+
+  it('SearchPage shows skeleton while first search loads', async () => {
+    server.use(
+      http.post('*/api/social-posts/search/', async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50))
+        return HttpResponse.json({
+          results: { posts: [samplePost], profiles: [] },
+          next: null,
+        })
+      }),
+    )
+    const user = userEvent.setup()
+    const client = createTestClient()
+    const Page = createSocialRouteWrapper(client, '/social/search', <SearchPage />)
+    render(<Page />)
+    await user.type(screen.getByLabelText('What are you looking for?'), 'hello')
+    await user.click(screen.getByRole('button', { name: 'Search' }))
+    expect(document.querySelector('.MuiSkeleton-root')).toBeInTheDocument()
+    expect(await screen.findByText('Hello feed')).toBeInTheDocument()
+  })
+
+  it('FeedHomePage ignores scroll while next page is loading', async () => {
+    let resolvePage2: (value: Response) => void
+    server.use(
+      http.get('*/api/social-posts/', ({ request }) => {
+        const url = new URL(request.url)
+        if (url.searchParams.get('page') === '2') {
+          return new Promise((resolve) => {
+            resolvePage2 = resolve
+          })
+        }
+        return HttpResponse.json({
+          results: { posts: [samplePost] },
+          next: `${url.origin}/api/social-posts/?page=2`,
+        })
+      }),
+    )
+    const client = createTestClient()
+    const Page = createSocialRouteWrapper(client, '/social/home', <FeedHomePage />)
+    render(<Page />)
+    expect(await screen.findByText('Hello feed')).toBeInTheDocument()
+
+    Object.defineProperty(document.body, 'offsetHeight', {
+      configurable: true,
+      value: 200,
+    })
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 100 })
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 120 })
+    window.dispatchEvent(new Event('scroll'))
+    expect(await screen.findByRole('progressbar')).toBeInTheDocument()
+
+    window.dispatchEvent(new Event('scroll'))
+    resolvePage2!(
+      HttpResponse.json({
+        results: { posts: [{ ...samplePost, id: 11, body: 'Second page' }] },
+        next: null,
+      }),
+    )
+    expect(await screen.findByText('Second page')).toBeInTheDocument()
+  })
+
+  it('SearchPage shows progress while fetching next page', async () => {
+    server.use(
+      http.post('*/api/social-posts/search/', () =>
+        HttpResponse.json({
+          results: { posts: [samplePost], profiles: [] },
+          next: 'https://example.com/api/social-posts/search/?page=2',
+        }),
+      ),
+      http.get('*/api/social-posts/search/', () =>
+        new Promise((resolve) => {
+          setTimeout(() => {
+            resolve(
+              HttpResponse.json({
+                results: { posts: [{ ...samplePost, id: 12, body: 'Paged result' }] },
+                next: null,
+              }),
+            )
+          }, 100)
+        }),
+      ),
+    )
+    const user = userEvent.setup()
+    const client = createTestClient()
+    const Page = createSocialRouteWrapper(client, '/social/search', <SearchPage />)
+    render(<Page />)
+    await user.type(screen.getByLabelText('What are you looking for?'), 'hello')
+    await user.click(screen.getByRole('button', { name: 'Search' }))
+    expect(await screen.findByText('Hello feed')).toBeInTheDocument()
+
+    Object.defineProperty(document.body, 'offsetHeight', {
+      configurable: true,
+      value: 200,
+    })
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 100 })
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 120 })
+    window.dispatchEvent(new Event('scroll'))
+    expect(await screen.findByRole('progressbar')).toBeInTheDocument()
+    expect(await screen.findByText('Paged result')).toBeInTheDocument()
+  })
+
+  it('TrendPage ignores scroll while next page is loading', async () => {
+    let resolvePage2: (value: Response) => void
+    server.use(
+      http.get('*/api/social-posts/', ({ request }) => {
+        const url = new URL(request.url)
+        if (url.searchParams.get('trend') === 'react' && url.searchParams.get('page') === '2') {
+          return new Promise((resolve) => {
+            resolvePage2 = resolve
+          })
+        }
+        if (url.searchParams.get('trend') === 'react') {
+          return HttpResponse.json({
+            results: { posts: [{ ...samplePost, body: '#react rocks' }] },
+            next: `${url.origin}/api/social-posts/?trend=react&page=2`,
+          })
+        }
+        return HttpResponse.json({ results: { posts: [samplePost] }, next: null })
+      }),
+    )
+    const client = createTestClient()
+    const Page = createSocialRouteWrapper(
+      client,
+      '/social/trends/:id',
+      <TrendPage />,
+      '/social/trends/react',
+    )
+    render(<Page />)
+    expect(await screen.findByText('#react rocks')).toBeInTheDocument()
+
+    Object.defineProperty(document.body, 'offsetHeight', {
+      configurable: true,
+      value: 200,
+    })
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 100 })
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 120 })
+    window.dispatchEvent(new Event('scroll'))
+    expect(await screen.findByRole('progressbar')).toBeInTheDocument()
+    window.dispatchEvent(new Event('scroll'))
+    resolvePage2!(
+      HttpResponse.json({
+        results: { posts: [{ ...samplePost, id: 21, body: 'Trend page 2' }] },
+        next: null,
+      }),
+    )
+    expect(await screen.findByText('Trend page 2')).toBeInTheDocument()
+  })
+
+  it('SearchPage ignores scroll while next page is loading', async () => {
+    let resolvePage2: (value: Response) => void
+    server.use(
+      http.post('*/api/social-posts/search/', () =>
+        HttpResponse.json({
+          results: { posts: [samplePost], profiles: [] },
+          next: 'https://example.com/api/social-posts/search/?page=2',
+        }),
+      ),
+      http.get('*/api/social-posts/search/', () =>
+        new Promise((resolve) => {
+          resolvePage2 = resolve
+        }),
+      ),
+    )
+    const user = userEvent.setup()
+    const client = createTestClient()
+    const Page = createSocialRouteWrapper(client, '/social/search', <SearchPage />)
+    render(<Page />)
+    await user.type(screen.getByLabelText('What are you looking for?'), 'hello')
+    await user.click(screen.getByRole('button', { name: 'Search' }))
+    expect(await screen.findByText('Hello feed')).toBeInTheDocument()
+
+    Object.defineProperty(document.body, 'offsetHeight', {
+      configurable: true,
+      value: 200,
+    })
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 100 })
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 120 })
+    window.dispatchEvent(new Event('scroll'))
+    expect(await screen.findByRole('progressbar')).toBeInTheDocument()
+    window.dispatchEvent(new Event('scroll'))
+    resolvePage2!(
+      HttpResponse.json({
+        results: { posts: [{ ...samplePost, id: 12, body: 'Paged result' }] },
+        next: null,
+      }),
+    )
+    expect(await screen.findByText('Paged result')).toBeInTheDocument()
+  })
+
+  it('TrendPage shows progress while fetching next page', async () => {
     server.use(
       http.get('*/api/social-posts/', ({ request }) => {
         const url = new URL(request.url)
         if (url.searchParams.get('trend') === 'react') {
           if (url.searchParams.get('page') === '2') {
-            return HttpResponse.json({
-              results: { posts: [{ ...samplePost, id: 21, body: 'Trend page 2' }] },
-              next: null,
+            return new Promise((resolve) => {
+              setTimeout(() => {
+                resolve(
+                  HttpResponse.json({
+                    results: { posts: [{ ...samplePost, id: 21, body: 'Trend page 2' }] },
+                    next: null,
+                  }),
+                )
+              }, 100)
             })
           }
           return HttpResponse.json({
@@ -293,6 +608,7 @@ describe('social post pages', () => {
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 100 })
     Object.defineProperty(window, 'scrollY', { configurable: true, value: 120 })
     window.dispatchEvent(new Event('scroll'))
+    expect(await screen.findByRole('progressbar')).toBeInTheDocument()
     expect(await screen.findByText('Trend page 2')).toBeInTheDocument()
   })
 })

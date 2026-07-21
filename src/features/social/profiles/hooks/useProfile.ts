@@ -84,7 +84,7 @@ export function useCurrentSocialUser() {
 export function useProfilePosts(profileSlug: string | undefined) {
   const query = useInfiniteQuery({
     queryKey: profilePostsKey(profileSlug ?? ''),
-    queryFn: ({ pageParam }) => fetchProfilePosts(profileSlug ?? '', pageParam),
+    queryFn: ({ pageParam }) => fetchProfilePosts(profileSlug!, pageParam),
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.next ?? undefined,
     enabled: Boolean(profileSlug),
@@ -98,7 +98,7 @@ export function useProfilePosts(profileSlug: string | undefined) {
 export function useFriendsData(userSlug: string | undefined) {
   const query = useQuery({
     queryKey: friendsKey(userSlug ?? ''),
-    queryFn: () => fetchFriendsData(userSlug ?? ''),
+    queryFn: () => fetchFriendsData(userSlug!),
     enabled: Boolean(userSlug),
   })
 

@@ -200,6 +200,262 @@ describe('MainSocialLayout', () => {
     await user.click(screen.getByText('Theme'))
   })
 
+  it('opens mobile navigation menu with All Apps link when remote host is set', async () => {
+    useAuthStore.setState({ access: null, refresh: null, activeApp: 'social' })
+    useProfileStore.setState({ user: null })
+    vi.stubEnv('VITE_REMOTE_HOST', 'http://apps.example')
+    const user = userEvent.setup()
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      configurable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: true,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    })
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+
+    render(
+      <QueryClientProvider client={client}>
+        <ThemeProvider theme={socialTheme}>
+          <MemoryRouter initialEntries={['/social/home']}>
+            <Routes>
+              <Route element={<MainSocialLayout />}>
+                <Route path="/social/home" element={<div>Home content</div>} />
+              </Route>
+            </Routes>
+          </MemoryRouter>
+        </ThemeProvider>
+      </QueryClientProvider>,
+    )
+
+    await user.click(screen.getByLabelText('Open menu'))
+    expect(await screen.findByRole('menuitem', { name: 'All Apps' })).toBeInTheDocument()
+  })
+
+  it('opens mobile profile link for authenticated users', async () => {
+    const user = userEvent.setup()
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      configurable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: true,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    })
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+
+    render(
+      <QueryClientProvider client={client}>
+        <ThemeProvider theme={socialTheme}>
+          <MemoryRouter initialEntries={['/social/home']}>
+            <Routes>
+              <Route element={<MainSocialLayout />}>
+                <Route path="/social/home" element={<div>Home content</div>} />
+              </Route>
+            </Routes>
+          </MemoryRouter>
+        </ThemeProvider>
+      </QueryClientProvider>,
+    )
+
+    await user.click(screen.getByLabelText('Open menu'))
+    expect(await screen.findByRole('menuitem', { name: 'Profile' })).toBeInTheDocument()
+  })
+
+  it('opens mobile navigation menu for guests', async () => {
+    useAuthStore.setState({ access: null, refresh: null, activeApp: 'social' })
+    useProfileStore.setState({ user: null })
+    const user = userEvent.setup()
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      configurable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: true,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    })
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+
+    render(
+      <QueryClientProvider client={client}>
+        <ThemeProvider theme={socialTheme}>
+          <MemoryRouter initialEntries={['/social/home']}>
+            <Routes>
+              <Route element={<MainSocialLayout />}>
+                <Route path="/social/home" element={<div>Home content</div>} />
+              </Route>
+            </Routes>
+          </MemoryRouter>
+        </ThemeProvider>
+      </QueryClientProvider>,
+    )
+
+    await user.click(screen.getByLabelText('Open menu'))
+    expect(await screen.findByRole('menuitem', { name: 'Login' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Signup' })).toBeInTheDocument()
+  })
+
+  it('hides remote All Apps links when env is unset', async () => {
+    vi.stubEnv('VITE_REMOTE_HOST', '')
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+
+    render(
+      <QueryClientProvider client={client}>
+        <ThemeProvider theme={socialTheme}>
+          <MemoryRouter initialEntries={['/social/home']}>
+            <Routes>
+              <Route element={<MainSocialLayout />}>
+                <Route path="/social/home" element={<div>Home content</div>} />
+              </Route>
+            </Routes>
+          </MemoryRouter>
+        </ThemeProvider>
+      </QueryClientProvider>,
+    )
+
+    expect(screen.queryByText('All Apps')).not.toBeInTheDocument()
+  })
+
+  it('hides mobile profile link when authenticated user has no slug', async () => {
+    server.use(
+      http.get('*/api/social-profiles/me/', () =>
+        HttpResponse.json({
+          id: 1,
+          username: 'john',
+          first_name: 'John',
+          last_name: 'Doe',
+          email: 'j@e.com',
+          slug: '',
+          full_name: 'John Doe',
+          avatar_url: null,
+        }),
+      ),
+    )
+    useProfileStore.setState({
+      user: {
+        id: 1,
+        username: 'john',
+        first_name: 'John',
+        last_name: 'Doe',
+        email: 'j@e.com',
+        slug: '',
+        full_name: 'John Doe',
+        avatar_url: null,
+      },
+    })
+    const user = userEvent.setup()
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      configurable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: true,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    })
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+
+    render(
+      <QueryClientProvider client={client}>
+        <ThemeProvider theme={socialTheme}>
+          <MemoryRouter initialEntries={['/social/home']}>
+            <Routes>
+              <Route element={<MainSocialLayout />}>
+                <Route path="/social/home" element={<div>Home content</div>} />
+              </Route>
+            </Routes>
+          </MemoryRouter>
+        </ThemeProvider>
+      </QueryClientProvider>,
+    )
+
+    await user.click(screen.getByLabelText('Open menu'))
+    expect(await screen.findByRole('menuitem', { name: /Notifications/i })).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Profile' })).not.toBeInTheDocument()
+  })
+
+  it('hides profile avatar when authenticated user has no slug', async () => {
+    server.use(
+      http.get('*/api/social-profiles/me/', () =>
+        HttpResponse.json({
+          id: 1,
+          username: 'john',
+          first_name: 'John',
+          last_name: 'Doe',
+          email: 'j@e.com',
+          slug: '',
+          full_name: 'John Doe',
+          avatar_url: null,
+        }),
+      ),
+    )
+    useProfileStore.setState({
+      user: {
+        id: 1,
+        username: 'john',
+        first_name: 'John',
+        last_name: 'Doe',
+        email: 'j@e.com',
+        slug: '',
+        full_name: 'John Doe',
+        avatar_url: null,
+      },
+    })
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+
+    render(
+      <QueryClientProvider client={client}>
+        <ThemeProvider theme={socialTheme}>
+          <MemoryRouter initialEntries={['/social/home']}>
+            <Routes>
+              <Route element={<MainSocialLayout />}>
+                <Route path="/social/home" element={<div>Home content</div>} />
+              </Route>
+            </Routes>
+          </MemoryRouter>
+        </ThemeProvider>
+      </QueryClientProvider>,
+    )
+
+    expect(screen.queryByLabelText('Profile')).not.toBeInTheDocument()
+  })
+
   it('logout clears profile and navigates to login', async () => {
     const user = userEvent.setup()
     const client = new QueryClient({

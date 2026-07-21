@@ -27,6 +27,20 @@ describe('usePageBottomScroll', () => {
     window.dispatchEvent(new Event('scroll'))
     expect(onReachBottom).not.toHaveBeenCalled()
   })
+
+  it('does not call handler when scroll is above bottom threshold', () => {
+    const onReachBottom = vi.fn()
+    Object.defineProperty(window, 'innerHeight', { value: 800, configurable: true })
+    Object.defineProperty(window, 'scrollY', { value: 100, configurable: true })
+    Object.defineProperty(document.body, 'offsetHeight', {
+      value: 5000,
+      configurable: true,
+    })
+
+    renderHook(() => usePageBottomScroll(onReachBottom, true))
+    window.dispatchEvent(new Event('scroll'))
+    expect(onReachBottom).not.toHaveBeenCalled()
+  })
 })
 
 describe('profile validation schemas', () => {
