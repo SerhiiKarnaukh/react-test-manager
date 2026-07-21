@@ -100,11 +100,28 @@ describe('parseRealtimeAssistantMessage', () => {
       }),
     ).toBe('text reply')
   })
+
+  it('returns null when response.done has empty content', () => {
+    expect(
+      parseRealtimeAssistantMessage({
+        type: 'response.done',
+        response: { output: [{ content: [{}] }] },
+      }),
+    ).toBeNull()
+  })
+
+  it('returns null for response.done without output', () => {
+    expect(parseRealtimeAssistantMessage({ type: 'response.done', response: {} })).toBeNull()
+  })
 })
 
 describe('extractFilenameFromUrl', () => {
   it('extracts and decodes filename from url path', () => {
     expect(extractFilenameFromUrl('https://cdn.test/uploads/cat%20pic.png')).toBe('cat pic.png')
+  })
+
+  it('returns empty string when url has no path segment', () => {
+    expect(extractFilenameFromUrl('https://cdn.test/')).toBe('')
   })
 })
 

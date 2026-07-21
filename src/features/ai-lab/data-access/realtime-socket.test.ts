@@ -34,6 +34,8 @@ describe('RealtimeSocket', () => {
   function getSocket(instance: RealtimeSocket) {
     return (instance as unknown as { socket: {
       onmessage: ((event: MessageEvent<string>) => void) | null
+      onerror: ((event: Event) => void) | null
+      onclose: (() => void) | null
       send: ReturnType<typeof vi.fn>
       close: ReturnType<typeof vi.fn>
     } }).socket
@@ -108,6 +110,115 @@ describe('RealtimeSocket', () => {
     socket.disconnect()
 
     expect(ws.close).toHaveBeenCalled()
+    expect(socket.isReady()).toBe(false)
+  })
+
+  it('rejects connect promise on websocket error', async () => {
+    const socket = new RealtimeSocket()
+    const onError = vi.fn()
+    const connectPromise = socket.connect('ephemeral-key', {
+      onAssistantMessage: vi.fn(),
+      onError,
+    })
+
+    getSocket(socket).onerror?.(new Event('error'))
+
+    await expect(connectPromise).rejects.toBeTruthy()
+    expect(onError).toHaveBeenCalled()
+  })
+
+  it('ignores realtime error events without forwarding assistant message', async () => {
+    const onAssistantMessage = vi.fn()
+    const socket = new RealtimeSocket()
+    const connectPromise = socket.connect('ephemeral-key', { onAssistantMessage })
+
+    getSocket(socket).onmessage?.({
+      data: JSON.stringify({ type: 'session.created' }),
+    } as MessageEvent<string>)
+    await connectPromise
+
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    getSocket(socket).onmessage?.({
+      data: JSON.stringify({ type: 'error', message: 'bad' }),
+    } as MessageEvent<string>)
+
+    expect(onAssistantMessage).not.toHaveBeenCalled()
+    expect(errorSpy).toHaveBeenCalled()
+    errorSpy.mockRestore()
+  })
+
+  it('resolves connect promise on session.updated', async () => {
+    const socket = new RealtimeSocket()
+    const connectPromise = socket.connect('ephemeral-key', { onAssistantMessage: vi.fn() })
+
+    getSocket(socket).onmessage?.({
+      data: JSON.stringify({ type: 'session.updated' }),
+    } as MessageEvent<string>)
+
+    await connectPromise
+    expect(socket.isReady()).toBe(true)
+  })
+
+  it('ignores duplicate session resolution events', async () => {
+    const onAssistantMessage = vi.fn()
+    const socket = new RealtimeSocket()
+    const connectPromise = socket.connect('ephemeral-key', { onAssistantMessage })
+
+    const ws = getSocket(socket)
+    ws.onmessage?.({
+      data: JSON.stringify({ type: 'session.created' }),
+    } as MessageEvent<string>)
+    await connectPromise
+
+    ws.onmessage?.({
+      data: JSON.stringify({ type: 'session.updated' }),
+    } as MessageEvent<string>)
+
+    expect(socket.isReady()).toBe(true)
+  })
+
+  it('rejects only once when error fires after session resolved', async () => {
+    const socket = new RealtimeSocket()
+    const connectPromise = socket.connect('ephemeral-key', { onAssistantMessage: vi.fn() })
+
+    const ws = getSocket(socket)
+    ws.onmessage?.({
+      data: JSON.stringify({ type: 'session.created' }),
+    } as MessageEvent<string>)
+    await connectPromise
+
+    ws.onerror?.(new Event('error'))
+    await expect(Promise.resolve()).resolves.toBeUndefined()
+  })
+
+  it('ignores websocket payloads without assistant text', async () => {
+    const onAssistantMessage = vi.fn()
+    const socket = new RealtimeSocket()
+    const connectPromise = socket.connect('ephemeral-key', { onAssistantMessage })
+
+    const ws = getSocket(socket)
+    ws.onmessage?.({
+      data: JSON.stringify({ type: 'session.created' }),
+    } as MessageEvent<string>)
+    await connectPromise
+
+    ws.onmessage?.({
+      data: JSON.stringify({ type: 'response.audio.delta' }),
+    } as MessageEvent<string>)
+
+    expect(onAssistantMessage).not.toHaveBeenCalled()
+  })
+
+  it('resets readiness on socket close', async () => {
+    const socket = new RealtimeSocket()
+    const connectPromise = socket.connect('ephemeral-key', { onAssistantMessage: vi.fn() })
+
+    getSocket(socket).onmessage?.({
+      data: JSON.stringify({ type: 'session.created' }),
+    } as MessageEvent<string>)
+    await connectPromise
+
+    getSocket(socket).onclose?.()
     expect(socket.isReady()).toBe(false)
   })
 })

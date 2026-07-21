@@ -40,7 +40,7 @@ export function ImageGeneratorPage() {
             <Box sx={{ p: 2 }}>
               <Box
                 component="img"
-                src={imageUrl ?? ''}
+                src={imageUrl}
                 alt="Generated image"
                 sx={{
                   display: 'block',

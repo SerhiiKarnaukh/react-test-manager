@@ -39,6 +39,7 @@ export default defineConfig({
         'src/features/social/**/*.models.ts',
         'src/features/social/social.theme.ts',
         'src/features/ai-lab/**/*.test.*',
+        'src/features/ai-lab/test/**',
         'src/features/ai-lab/ai-lab.theme.ts',
         'src/features/ai-lab/ai-lab.routes.tsx',
         'src/features/taberna/**/*.test.*',
@@ -46,6 +47,14 @@ export default defineConfig({
         'src/features/taberna/taberna.theme.ts',
         'src/features/taberna/taberna.routes.tsx',
       ],
+      thresholds: {
+        'src/features/ai-lab/**': {
+          lines: 100,
+          functions: 100,
+          statements: 100,
+          branches: 100,
+        },
+      },
     },
   },
 })

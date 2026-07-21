@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:coverage:ai-lab": "vitest run --coverage src/features/ai-lab"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

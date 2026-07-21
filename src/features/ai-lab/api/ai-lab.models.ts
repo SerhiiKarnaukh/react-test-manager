@@ -80,7 +80,7 @@ export function parseRealtimeAssistantMessage(data: {
 }
 
 export function extractFilenameFromUrl(imageUrl: string): string {
-  const encodedFilename = imageUrl.split('/').pop() ?? ''
+  const encodedFilename = imageUrl.split('/').pop() || ''
   return decodeURIComponent(encodedFilename)
 }
 

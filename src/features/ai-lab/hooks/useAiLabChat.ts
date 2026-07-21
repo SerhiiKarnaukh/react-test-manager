@@ -69,9 +69,7 @@ export function useDeletePromptImage() {
       return index
     },
     onSuccess: (index) => {
-      if (index !== undefined) {
-        removePromptImageAt(index)
-      }
+      removePromptImageAt(index)
     },
     onError: (error) => {
       showError(error, 'Failed to delete image')
