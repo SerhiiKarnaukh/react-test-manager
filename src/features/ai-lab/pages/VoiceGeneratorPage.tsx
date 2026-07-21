@@ -47,7 +47,7 @@ export function VoiceGeneratorPage() {
               ) : (
                 <Box
                   component="audio"
-                  src={voiceMessage}
+                  src={voiceMessage ?? undefined}
                   controls
                   sx={{ width: '100%', minWidth: 280 }}
                 />

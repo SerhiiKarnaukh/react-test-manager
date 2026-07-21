@@ -97,7 +97,7 @@ describe('ai lab ui', () => {
   beforeEach(() => {
     mockWebSocket()
     mockedUseMediaQuery.mockReturnValue(false)
-    useAuthStore.setState({ token: null, activeApp: null })
+    useAuthStore.setState({ access: null, refresh: null, activeApp: null })
     useAlertStore.getState().clear()
     useAiLabStore.setState({
       message: null,
