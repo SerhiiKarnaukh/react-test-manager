@@ -29,6 +29,7 @@ export default defineConfig({
       include: [
         'src/features/apps-manager/**/*.{ts,tsx}',
         'src/features/social/**/*.{ts,tsx}',
+        'src/features/ai-lab/**/*.{ts,tsx}',
         'src/features/taberna/**/*.{ts,tsx}',
       ],
       exclude: [
@@ -37,6 +38,9 @@ export default defineConfig({
         'src/features/social/**/*.test.*',
         'src/features/social/**/*.models.ts',
         'src/features/social/social.theme.ts',
+        'src/features/ai-lab/**/*.test.*',
+        'src/features/ai-lab/ai-lab.theme.ts',
+        'src/features/ai-lab/ai-lab.routes.tsx',
         'src/features/taberna/**/*.test.*',
         'src/features/taberna/test/**',
         'src/features/taberna/taberna.theme.ts',
