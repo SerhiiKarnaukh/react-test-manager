@@ -24,6 +24,7 @@ import {
   createDarkAiLabWrapper,
   createTestClient,
 } from '@features/ai-lab/test/ai-lab-test-utils'
+import { downloadImageHandler } from '@features/ai-lab/test/ai-lab-msw-handlers'
 import { useAiLabStore } from '@features/ai-lab/store/ai-lab.store'
 
 vi.mock('@mui/material/useMediaQuery', () => ({
@@ -48,9 +49,7 @@ const server = setupServer(
   http.post('*/ai-lab/voice-generator/', () =>
     HttpResponse.json({ message: 'https://audio.test/voice.mp3' }),
   ),
-  http.post('*/ai-lab/download-image/', () =>
-    HttpResponse.arrayBuffer(new TextEncoder().encode('image-bytes').buffer),
-  ),
+  downloadImageHandler,
   http.post('*/ai-lab/upload-vision-images/', () =>
     HttpResponse.json({ uploaded_images: ['https://cdn.test/uploaded.png'] }),
   ),
@@ -234,7 +233,9 @@ describe('ai lab ui', () => {
     })
 
     await userEvent.click(screen.getByRole('button', { name: 'Download Image' }))
-    expect(clickSpy).toHaveBeenCalled()
+    await waitFor(() => {
+      expect(clickSpy).toHaveBeenCalled()
+    })
   })
 
   it('generates voice on voice page', async () => {

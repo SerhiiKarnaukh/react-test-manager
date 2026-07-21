@@ -5,15 +5,14 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import { useAlertStore } from '@core/alert/alert.store'
 import { useDownloadGeneratedImage, useGenerateImage } from '@features/ai-lab/hooks/useAiLabImage'
 import { createAiLabWrapper, createTestClient } from '@features/ai-lab/test/ai-lab-test-utils'
+import { downloadImageHandler } from '@features/ai-lab/test/ai-lab-msw-handlers'
 import { useAiLabStore } from '@features/ai-lab/store/ai-lab.store'
 
 const server = setupServer(
   http.post('*/ai-lab/image-generator/', () =>
     HttpResponse.json({ message: 'https://img.test/generated.png' }),
   ),
-  http.post('*/ai-lab/download-image/', () =>
-    HttpResponse.arrayBuffer(new TextEncoder().encode('image-bytes').buffer),
-  ),
+  downloadImageHandler,
 )
 
 describe('useAiLabImage hooks', () => {
@@ -75,7 +74,9 @@ describe('useAiLabImage hooks', () => {
 
   it('useDownloadGeneratedImage enqueues alert on failure', async () => {
     server.use(
-      http.post('*/ai-lab/download-image/', () => new HttpResponse(null, { status: 500 })),
+      http.post('*/ai-lab/download-image/', () =>
+        HttpResponse.text('error', { status: 500 }),
+      ),
     )
     const client = createTestClient()
     const { result } = renderHook(() => useDownloadGeneratedImage(), {

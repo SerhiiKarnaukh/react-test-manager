@@ -5,6 +5,7 @@ import { sendChatMessage, uploadVisionImages, deleteVisionImage } from '@feature
 import { downloadImage, generateImage } from '@features/ai-lab/api/image'
 import { generateVoice } from '@features/ai-lab/api/voice'
 import { fetchRealtimeToken } from '@features/ai-lab/api/realtime'
+import { downloadImageHandler } from '@features/ai-lab/test/ai-lab-msw-handlers'
 
 const server = setupServer(
   http.post('*/ai-lab/', async ({ request }) => {
@@ -19,9 +20,7 @@ const server = setupServer(
     const body = (await request.json()) as { question?: string }
     return HttpResponse.json({ message: `https://audio.test/${body.question}.mp3` })
   }),
-  http.post('*/ai-lab/download-image/', () =>
-    HttpResponse.arrayBuffer(new TextEncoder().encode('image-bytes').buffer),
-  ),
+  downloadImageHandler,
   http.delete('*/ai-lab/delete-vision-image/', () => HttpResponse.json({ ok: true })),
   http.post('*/ai-lab/upload-vision-images/', () =>
     HttpResponse.json({ uploaded_images: ['https://cdn.test/new.png'] }),
