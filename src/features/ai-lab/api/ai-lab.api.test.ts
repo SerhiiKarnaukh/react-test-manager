@@ -1,11 +1,11 @@
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { api } from '@core/http/axios'
 import { sendChatMessage, uploadVisionImages, deleteVisionImage } from '@features/ai-lab/api/chat'
 import { downloadImage, generateImage } from '@features/ai-lab/api/image'
 import { generateVoice } from '@features/ai-lab/api/voice'
 import { fetchRealtimeToken } from '@features/ai-lab/api/realtime'
-import { downloadImageHandler } from '@features/ai-lab/test/ai-lab-msw-handlers'
 
 const server = setupServer(
   http.post('*/ai-lab/', async ({ request }) => {
@@ -20,7 +20,6 @@ const server = setupServer(
     const body = (await request.json()) as { question?: string }
     return HttpResponse.json({ message: `https://audio.test/${body.question}.mp3` })
   }),
-  downloadImageHandler,
   http.delete('*/ai-lab/delete-vision-image/', () => HttpResponse.json({ ok: true })),
   http.post('*/ai-lab/upload-vision-images/', () =>
     HttpResponse.json({ uploaded_images: ['https://cdn.test/new.png'] }),
@@ -32,7 +31,10 @@ const server = setupServer(
 
 describe('ai lab api', () => {
   beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
-  afterEach(() => server.resetHandlers())
+  afterEach(() => {
+    server.resetHandlers()
+    vi.restoreAllMocks()
+  })
   afterAll(() => server.close())
 
   it('sendChatMessage posts question and prompt images', async () => {
@@ -54,8 +56,21 @@ describe('ai lab api', () => {
   })
 
   it('downloadImage returns blob response', async () => {
-    const blob = await downloadImage('cat.png')
-    expect(blob).toBeInstanceOf(Blob)
+    const blob = new Blob(['image-bytes'], { type: 'application/octet-stream' })
+    const postSpy = vi.spyOn(api, 'post').mockResolvedValueOnce({
+      data: blob,
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config: { headers: {} },
+    })
+
+    await expect(downloadImage('cat.png')).resolves.toBe(blob)
+    expect(postSpy).toHaveBeenCalledWith(
+      '/ai-lab/download-image/',
+      { filename: 'cat.png' },
+      { responseType: 'blob' },
+    )
   })
 
   it('deleteVisionImage sends filename in request body', async () => {

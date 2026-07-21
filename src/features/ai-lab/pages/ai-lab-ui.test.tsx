@@ -3,6 +3,18 @@ import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('@features/ai-lab/api/image', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@features/ai-lab/api/image')>()
+  const { vi: vitest } = await import('vitest')
+  return {
+    ...actual,
+    downloadImage: vitest.fn(async () =>
+      new Blob(['image-bytes'], { type: 'application/octet-stream' }),
+    ),
+  }
+})
+
 import { QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { useAuthStore } from '@core/auth/auth.store'
@@ -24,7 +36,6 @@ import {
   createDarkAiLabWrapper,
   createTestClient,
 } from '@features/ai-lab/test/ai-lab-test-utils'
-import { downloadImageHandler } from '@features/ai-lab/test/ai-lab-msw-handlers'
 import { useAiLabStore } from '@features/ai-lab/store/ai-lab.store'
 
 vi.mock('@mui/material/useMediaQuery', () => ({
@@ -49,7 +60,6 @@ const server = setupServer(
   http.post('*/ai-lab/voice-generator/', () =>
     HttpResponse.json({ message: 'https://audio.test/voice.mp3' }),
   ),
-  downloadImageHandler,
   http.post('*/ai-lab/upload-vision-images/', () =>
     HttpResponse.json({ uploaded_images: ['https://cdn.test/uploaded.png'] }),
   ),

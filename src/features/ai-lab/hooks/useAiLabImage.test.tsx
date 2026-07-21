@@ -3,16 +3,26 @@ import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { useAlertStore } from '@core/alert/alert.store'
+import { downloadImage } from '@features/ai-lab/api/image'
 import { useDownloadGeneratedImage, useGenerateImage } from '@features/ai-lab/hooks/useAiLabImage'
 import { createAiLabWrapper, createTestClient } from '@features/ai-lab/test/ai-lab-test-utils'
-import { downloadImageHandler } from '@features/ai-lab/test/ai-lab-msw-handlers'
 import { useAiLabStore } from '@features/ai-lab/store/ai-lab.store'
+
+vi.mock('@features/ai-lab/api/image', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@features/ai-lab/api/image')>()
+  const { vi: vitest } = await import('vitest')
+  return {
+    ...actual,
+    downloadImage: vitest.fn(async () =>
+      new Blob(['image-bytes'], { type: 'application/octet-stream' }),
+    ),
+  }
+})
 
 const server = setupServer(
   http.post('*/ai-lab/image-generator/', () =>
     HttpResponse.json({ message: 'https://img.test/generated.png' }),
   ),
-  downloadImageHandler,
 )
 
 describe('useAiLabImage hooks', () => {
@@ -21,6 +31,10 @@ describe('useAiLabImage hooks', () => {
     server.resetHandlers()
     useAlertStore.getState().clear()
     useAiLabStore.setState({ imageUrl: null })
+    vi.mocked(downloadImage).mockReset()
+    vi.mocked(downloadImage).mockImplementation(async () =>
+      new Blob(['image-bytes'], { type: 'application/octet-stream' }),
+    )
     vi.restoreAllMocks()
   })
   afterAll(() => server.close())
@@ -73,11 +87,7 @@ describe('useAiLabImage hooks', () => {
   })
 
   it('useDownloadGeneratedImage enqueues alert on failure', async () => {
-    server.use(
-      http.post('*/ai-lab/download-image/', () =>
-        HttpResponse.text('error', { status: 500 }),
-      ),
-    )
+    vi.mocked(downloadImage).mockRejectedValueOnce(new Error('download failed'))
     const client = createTestClient()
     const { result } = renderHook(() => useDownloadGeneratedImage(), {
       wrapper: createAiLabWrapper(client),
