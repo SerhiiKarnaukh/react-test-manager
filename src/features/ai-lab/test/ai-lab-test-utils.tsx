@@ -1,20 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import CssBaseline from '@mui/material/CssBaseline'
-import { ThemeProvider, useColorScheme } from '@mui/material/styles'
-import { useEffect, type ReactNode } from 'react'
+import { ThemeProvider } from '@mui/material/styles'
+import type { ReactNode } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { aiLabTheme } from '@features/ai-lab/ai-lab.theme'
 import { AiLabRealtimeProvider } from '@features/ai-lab/hooks/AiLabRealtimeContext'
-
-function DarkColorScheme({ children }: { children: ReactNode }) {
-  const { setMode } = useColorScheme()
-
-  useEffect(() => {
-    setMode('dark')
-  }, [setMode])
-
-  return children
-}
+import { DarkColorScheme } from '@features/ai-lab/test/DarkColorScheme'
 
 export function createTestClient() {
   return new QueryClient({

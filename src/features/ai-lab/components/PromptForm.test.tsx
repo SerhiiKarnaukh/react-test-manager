@@ -18,18 +18,14 @@ const connectMock = vi.fn(async () => {
 })
 const sendMessageMock = vi.fn()
 
-vi.mock('@features/ai-lab/hooks/AiLabRealtimeContext', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@features/ai-lab/hooks/AiLabRealtimeContext')>()
-  return {
-    ...actual,
-    useAiLabRealtime: () => ({
-      connect: connectMock,
-      disconnect: vi.fn(),
-      sendMessage: sendMessageMock,
-      isReady: () => isReady,
-    }),
-  }
-})
+vi.mock('@features/ai-lab/hooks/useAiLabRealtime', () => ({
+  useAiLabRealtime: () => ({
+    connect: connectMock,
+    disconnect: vi.fn(),
+    sendMessage: sendMessageMock,
+    isReady: () => isReady,
+  }),
+}))
 
 function renderPromptForm(path = '/ai-lab/realtime-chat') {
   const client = createTestClient()

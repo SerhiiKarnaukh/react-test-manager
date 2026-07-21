@@ -6,7 +6,8 @@ import { useAuthStore } from '@core/auth/auth.store'
 import { AiLabFooter } from '@features/ai-lab/components/AiLabFooter'
 import { AiLabNavbar } from '@features/ai-lab/components/AiLabNavbar'
 import { aiLabTheme } from '@features/ai-lab/ai-lab.theme'
-import { AiLabRealtimeProvider, useAiLabRealtime } from '@features/ai-lab/hooks/AiLabRealtimeContext'
+import { AiLabRealtimeProvider } from '@features/ai-lab/hooks/AiLabRealtimeContext'
+import { useAiLabRealtime } from '@features/ai-lab/hooks/useAiLabRealtime'
 
 function AiLabLayoutContent() {
   const setActiveApp = useAuthStore((s) => s.setActiveApp)

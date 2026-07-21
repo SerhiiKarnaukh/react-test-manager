@@ -26,6 +26,7 @@ export default defineConfig({
     css: true,
     coverage: {
       provider: 'istanbul',
+      reportsDirectory: 'coverage',
       include: [
         'src/features/apps-manager/**/*.{ts,tsx}',
         'src/features/social/**/*.{ts,tsx}',

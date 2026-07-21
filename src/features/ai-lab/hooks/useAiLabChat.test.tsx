@@ -2,7 +2,7 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
 import { AxiosError, AxiosHeaders } from 'axios'
-import { beforeAll, afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { beforeAll, afterAll, afterEach, describe, expect, it } from 'vitest'
 import { useAlertStore } from '@core/alert/alert.store'
 import {
   useDeletePromptImage,

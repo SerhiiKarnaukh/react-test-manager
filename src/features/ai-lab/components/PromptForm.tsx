@@ -10,7 +10,7 @@ import Divider from '@mui/material/Divider'
 import IconButton from '@mui/material/IconButton'
 import TextField from '@mui/material/TextField'
 import CloseIcon from '@mui/icons-material/Close'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { useAlertStore } from '@core/alert/alert.store'
 import {
   PROMPT_IMAGE_ALLOWED_TYPES,
@@ -18,7 +18,7 @@ import {
   PROMPT_MAX_LENGTH,
   resolvePromptFormMode,
 } from '@features/ai-lab/api/ai-lab.models'
-import { useAiLabRealtime } from '@features/ai-lab/hooks/AiLabRealtimeContext'
+import { useAiLabRealtime } from '@features/ai-lab/hooks/useAiLabRealtime'
 import {
   useDeletePromptImage,
   useSendChatMessage,
@@ -50,14 +50,14 @@ export function PromptForm() {
     register,
     handleSubmit,
     reset,
-    watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<PromptFormValues>({
     resolver: zodResolver(promptSchema),
     defaultValues: { prompt: '' },
   })
 
-  const promptValue = watch('prompt')
+  const promptValue = useWatch({ control, name: 'prompt', defaultValue: '' })
   const promptLength = promptValue.length
   const showAddImages = mode === 'chat'
   const submitLabel = mode === 'image' || mode === 'voice' ? 'Generate' : 'Ask Me'

@@ -1,9 +1,7 @@
 import { renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import {
-  AiLabRealtimeProvider,
-  useAiLabRealtime,
-} from '@features/ai-lab/hooks/AiLabRealtimeContext'
+import { AiLabRealtimeProvider } from '@features/ai-lab/hooks/AiLabRealtimeContext'
+import { useAiLabRealtime } from '@features/ai-lab/hooks/useAiLabRealtime'
 
 vi.mock('@features/ai-lab/hooks/useRealtimeSocket', () => ({
   useRealtimeSocket: () => ({

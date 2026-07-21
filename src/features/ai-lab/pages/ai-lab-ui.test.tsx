@@ -68,7 +68,8 @@ function mockWebSocket() {
     send = vi.fn()
     close = vi.fn()
     readyState = MockWebSocket.OPEN
-    constructor(_url: string, _protocols: string[]) {
+    constructor() {
+      // eslint-disable-next-line @typescript-eslint/no-this-alias -- keep reference to mock socket instance
       lastSocket = this
     }
   }
