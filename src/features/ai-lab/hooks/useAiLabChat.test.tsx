@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
 import { AxiosError, AxiosHeaders } from 'axios'
@@ -25,10 +25,12 @@ describe('useAiLabChat hooks', () => {
   afterEach(() => {
     server.resetHandlers()
     useAlertStore.getState().clear()
-    useAiLabStore.setState({
-      message: null,
-      promptImages: [],
-      uploadingImages: false,
+    act(() => {
+      useAiLabStore.setState({
+        message: null,
+        promptImages: [],
+        uploadingImages: false,
+      })
     })
   })
   afterAll(() => server.close())
@@ -39,7 +41,9 @@ describe('useAiLabChat hooks', () => {
       wrapper: createAiLabWrapper(client),
     })
 
-    await result.current.mutateAsync('Hello AI')
+    await act(async () => {
+      await result.current.mutateAsync('Hello AI')
+    })
 
     await waitFor(() => {
       expect(useAiLabStore.getState().message).toBe('funny reply')
@@ -53,7 +57,9 @@ describe('useAiLabChat hooks', () => {
       wrapper: createAiLabWrapper(client),
     })
 
-    await expect(result.current.mutateAsync('fail')).rejects.toThrow()
+    await act(async () => {
+      await expect(result.current.mutateAsync('fail')).rejects.toThrow()
+    })
     await waitFor(() => {
       expect(useAlertStore.getState().queue.length).toBeGreaterThan(0)
     })
@@ -66,7 +72,9 @@ describe('useAiLabChat hooks', () => {
     })
 
     const file = new File(['x'], 'pic.png', { type: 'image/png' })
-    await result.current.mutateAsync([file])
+    await act(async () => {
+      await result.current.mutateAsync([file])
+    })
 
     await waitFor(() => {
       expect(useAiLabStore.getState().promptImages).toEqual(['https://cdn.test/new.png'])
@@ -84,22 +92,28 @@ describe('useAiLabChat hooks', () => {
     })
 
     const file = new File(['x'], 'pic.png', { type: 'image/png' })
-    await expect(result.current.mutateAsync([file])).rejects.toThrow()
+    await act(async () => {
+      await expect(result.current.mutateAsync([file])).rejects.toThrow()
+    })
     await waitFor(() => {
       expect(useAlertStore.getState().queue.length).toBeGreaterThan(0)
     })
   })
 
   it('useDeletePromptImage removes image from store', async () => {
-    useAiLabStore.setState({ promptImages: ['https://cdn.test/cat%20pic.png'] })
+    act(() => {
+      useAiLabStore.setState({ promptImages: ['https://cdn.test/cat%20pic.png'] })
+    })
     const client = createTestClient()
     const { result } = renderHook(() => useDeletePromptImage(), {
       wrapper: createAiLabWrapper(client),
     })
 
-    await result.current.mutateAsync({
-      index: 0,
-      imageUrl: 'https://cdn.test/cat%20pic.png',
+    await act(async () => {
+      await result.current.mutateAsync({
+        index: 0,
+        imageUrl: 'https://cdn.test/cat%20pic.png',
+      })
     })
 
     await waitFor(() => {
@@ -116,9 +130,11 @@ describe('useAiLabChat hooks', () => {
       wrapper: createAiLabWrapper(client),
     })
 
-    await expect(
-      result.current.mutateAsync({ index: 0, imageUrl: 'https://cdn.test/a.png' }),
-    ).rejects.toThrow()
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({ index: 0, imageUrl: 'https://cdn.test/a.png' }),
+      ).rejects.toThrow()
+    })
     await waitFor(() => {
       expect(useAlertStore.getState().queue.length).toBeGreaterThan(0)
     })

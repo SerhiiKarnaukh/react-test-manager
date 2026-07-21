@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
@@ -194,17 +194,20 @@ describe('ai lab ui', () => {
     const { rerender } = render(<RealtimeChat />, { wrapper: createAiLabWrapper(client) })
     expect(screen.getByText('Start a conversation')).toBeInTheDocument()
 
-    useAiLabStore.setState({
-      realtimeMessages: [
-        { sender: 'me', message: 'hello' },
-        { sender: 'chat', message: 'hi there' },
-      ],
+    act(() => {
+      useAiLabStore.setState({
+        realtimeMessages: [
+          { sender: 'me', message: 'hello' },
+          { sender: 'chat', message: 'hi there' },
+        ],
+      })
     })
-    rerender(<RealtimeChat />)
     expect(screen.getByText('hello')).toBeInTheDocument()
     expect(screen.getByText('hi there')).toBeInTheDocument()
 
-    rerender(<RealtimeChat isLoading />)
+    act(() => {
+      rerender(<RealtimeChat isLoading />)
+    })
     expect(screen.getByRole('status', { name: 'Loading response' })).toBeInTheDocument()
   })
 
